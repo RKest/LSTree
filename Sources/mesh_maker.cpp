@@ -21,7 +21,7 @@ std::unique_ptr<ColouredMesh> MeshMaker::BladeMesh()
     return std::make_unique<ColouredMesh>(&bladePositions[0], &bladeColours[0], bladePositions.size(), &bladeIndices[0], bladeIndices.size());
 }
 
-MeshMaker::MeshMaker(ui seed, const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString) : baseTransform(_baseTransform), noWalls(_noWalls), rootJoint(NULL)
+MeshMaker::MeshMaker(ui seed, const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString) : baseTransform(_baseTransform), noWalls(_noWalls)//, rootJoint(NULL)
 {
     customRand = CustomRand(seed);
 
@@ -98,18 +98,18 @@ void MeshMaker::HandleF(ui noSegments)
     topState->level++;
     newestLevel++;
 
-    if (Joint::maxNoJoints > newestJoint)
-    {
-        auto jointPtr = std::make_unique<Joint>();
-        jointPtr->id = ++newestJoint;
-        jointPtr->jointTransform = topState->transform;
+    // if (Joint::maxNoJoints > newestJoint)
+    // {
+    //     auto jointPtr = std::make_unique<Joint>();
+    //     jointPtr->id = ++newestJoint;
+    //     jointPtr->jointTransform = topState->transform;
 
-        if (topState->parentJointPtr != NULL)
-            topState->parentJointPtr->childJoints.push_back(*jointPtr);
-        else
+    //     if (topState->parentJointPtr != NULL)
+    //         topState->parentJointPtr->childJoints.push_back(*jointPtr);
+    //     else
 
-            topState->parentJointPtr = std::move(jointPtr);
-    }
+    //         topState->parentJointPtr = std::move(jointPtr);
+    // }
 }
 
 void MeshMaker::HandleMinus()
@@ -241,14 +241,14 @@ void MeshMaker::PushNewState(ui level, ui colourIndex, ui gurthCoefficientCompon
     state.transform = transform;
     state.colour = colourIndex;
     state.gurthExponent = gurthCoefficientComponent;
-    state.parentJointPtr = NULL;
+    // state.parentJointPtr.reset(NULL);
 
-    states.push(state);
+    states.push(std::move(state));
 }
 
 void MeshMaker::PushNewState()
 {
-    states.push(states.top());
+    states.push(std::move(states.top()));
 }
 
 glm::mat4 MeshMaker::RotateByDegrees(f deg)
@@ -278,10 +278,3 @@ glm::mat4 MeshMaker::translationMatrix(ui noSegments)
     return glm::translate(glm::vec3(0, SEGMNET_LENGTH * noSegments, 0));
 }
 
-// glm::mat4 MeshMaker::blankTransform = glm::mat4(
-//     glm::vec4(1, 0, 0, 0),
-//     glm::vec4(0, 1, 0, 0),
-//     glm::vec4(0, 0, 1, 0),
-//     glm::vec4(0, 0, 0, 1));
-
-// glm::mat4 MeshMaker::blankTransform = glm::translate(glm::vec3(0, -1, 0));
