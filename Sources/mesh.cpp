@@ -251,35 +251,35 @@ void PerformentIndexedModel::CalcNormals()
         normals[i] = glm::normalize(normals[i]);
 }
 
-// Joint *Joint::GetJointById(Joint &rootJoint, ui id)
-// {
-//     for (auto &joint : rootJoint.childJoints)
-//     {
-//         if (joint.id == id)
-//         {
-//             return &joint;
-//         }
-//     }
+Joint *Joint::GetJointById(Joint &rootJoint, ui id)
+{
+    for (auto &joint : rootJoint.childJoints)
+    {
+        if (joint.id == id)
+        {
+            return &joint;
+        }
+    }
 
-//     for (auto &joint : rootJoint.childJoints)
-//     {
-//         return GetJointById(joint, id);
-//     }
-// }
+    for (auto &joint : rootJoint.childJoints)
+    {
+        return GetJointById(joint, id);
+    }
+}
 
-// // void Joint::AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform)
-// // {
-// // }
+void Joint::AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform)
+{
+}
 
-// std::vector<Joint> Joint::ToJointVector()
-// {
-//     std::vector<Joint> returnVector;
-//     ui currentId = this->id;
+std::vector<Joint> Joint::ToJointVector()
+{
+    std::vector<Joint> returnVector;
+    ui currentId = this->id;
 
-//     //Is the root joint
-//     if (!currentId)
-//         for (ui i = 0; i < maxNoJoints; ++i)
-//             returnVector.push_back(*GetJointById(*this, ++currentId));
+    //Is the root joint
+    if (!currentId)
+        for (ui i = 0; i < maxNoJoints; ++i)
+            returnVector.push_back(*GetJointById(*this, ++currentId));
 
-//     return returnVector;
-// }
+    return returnVector;
+}

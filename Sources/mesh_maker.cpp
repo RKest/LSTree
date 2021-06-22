@@ -21,7 +21,7 @@ std::unique_ptr<ColouredMesh> MeshMaker::BladeMesh()
     return std::make_unique<ColouredMesh>(&bladePositions[0], &bladeColours[0], bladePositions.size(), &bladeIndices[0], bladeIndices.size());
 }
 
-MeshMaker::MeshMaker(ui seed, const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString) : baseTransform(_baseTransform), noWalls(_noWalls)//, rootJoint(NULL)
+MeshMaker::MeshMaker(ui seed, const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString) : baseTransform(_baseTransform), noWalls(_noWalls), rootJoint(NULL)
 {
     customRand = CustomRand(seed);
 
@@ -71,14 +71,6 @@ MeshMaker::~MeshMaker()
     std::cout << "Maker Destructed" << std::endl;
 }
 
-// glm::mat4 MeshMaker::RandomRotationMatrix()
-// {
-//     f32 r = static_cast<f32>(rand());
-//     glm::mat4 xMat = glm::rotate(sinf(r), glm::vec3(1, 0, 0));
-//     glm::mat4 yMat = glm::rotate(cosf(r), glm::vec3(0, 0, 1));
-//     return xMat * yMat;
-// }
-
 void MeshMaker::HandleF(ui noSegments)
 {
     LSystemState *topState = &states.top();
@@ -98,18 +90,17 @@ void MeshMaker::HandleF(ui noSegments)
     topState->level++;
     newestLevel++;
 
-    // if (Joint::maxNoJoints > newestJoint)
-    // {
-    //     auto jointPtr = std::make_unique<Joint>();
-    //     jointPtr->id = ++newestJoint;
-    //     jointPtr->jointTransform = topState->transform;
+    if (Joint::maxNoJoints > newestJoint)
+    {
+        auto jointPtr = std::make_unique<Joint>();
+        jointPtr->id = ++newestJoint;
+        jointPtr->jointTransform = topState->transform;
 
-    //     if (topState->parentJointPtr != NULL)
-    //         topState->parentJointPtr->childJoints.push_back(*jointPtr);
-    //     else
-
-    //         topState->parentJointPtr = std::move(jointPtr);
-    // }
+        if (topState->parentJointPtr != NULL)
+            topState->parentJointPtr->childJoints.push_back(*jointPtr);
+        else
+            topState->parentJointPtr = std::move(jointPtr);
+    }
 }
 
 void MeshMaker::HandleMinus()
@@ -241,7 +232,7 @@ void MeshMaker::PushNewState(ui level, ui colourIndex, ui gurthCoefficientCompon
     state.transform = transform;
     state.colour = colourIndex;
     state.gurthExponent = gurthCoefficientComponent;
-    // state.parentJointPtr.reset(NULL);
+    state.parentJointPtr.reset(NULL);
 
     states.push(std::move(state));
 }

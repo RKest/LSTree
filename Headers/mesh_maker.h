@@ -27,7 +27,7 @@ struct LSystemState
     ui level;
     ui colour;
     ui gurthExponent;
-    // std::unique_ptr<Joint> parentJointPtr;
+    std::unique_ptr<Joint> parentJointPtr;
 };
 
 class MeshMaker
@@ -47,7 +47,7 @@ private:
     void IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall);
 
     CustomRand customRand;
-    // Joint *rootJoint;
+    Joint *rootJoint;
 
     glm::mat4 baseTransform;
     glm::mat4 baseTransformInverse;

@@ -135,18 +135,18 @@ private:
     GLuint vertexArrayBuffers[NUM_BUFFERS];
 };
 
-// class Joint 
-// {
-// public:
-//     ui id;
-//     glm::mat4 jointTransform = glm::mat4({1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0});
-//     std::vector<Joint> childJoints;
-//     // void AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform);
-//     std::vector<Joint> ToJointVector();
+class Joint 
+{
+public:
+    ui id;
+    glm::mat4 jointTransform = glm::mat4({1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0});
+    std::vector<Joint> childJoints;
+    void AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform);
+    std::vector<Joint> ToJointVector();
 
-//     static Joint *GetJointById(Joint &rootJoint, ui id);
-//     static const ui maxNoJoints = 6;
-// };
+    static Joint *GetJointById(Joint &rootJoint, ui id);
+    static const ui maxNoJoints = 6;
+};
 
 // class AnimatedColouredMesh : public Mesh
 // {
