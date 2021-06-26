@@ -13,9 +13,9 @@
 
 struct CosSinPair
 {
-    f cosVal;
-    f sinVal;
-    f Repr()
+    ft cosVal;
+    ft sinVal;
+    ft Repr()
     {
         return cosVal + sinVal;
     }
@@ -43,7 +43,7 @@ public:
 
 protected:
 private:
-    void VerticifyMesh(f radius, const glm::vec3 &colour, const glm::mat4 &transform);
+    void VerticifyMesh(ft radius, const glm::vec3 &colour, const glm::mat4 &transform);
     void IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall);
 
     CustomRand customRand;
@@ -66,14 +66,14 @@ private:
 
     ui noLevels;
     ui noWalls;
-    f radius;
+    ft radius;
 
     //361 as of 360 possible angles to memoize indexed by the angle value
     CosSinPair cosSinMemTable[361] = {{0, 0}};
 
     glm::mat4 RandomRotationMatrix();
-    f GetGurthByCoefficientComponent(ui gurthExponent);
-    ui GetSegmentLength(const std::string &stateString, ui i);
+    ft GurthByExponent(ui gurthExponent);
+    ui SegmentLength(const std::string &stateString, ui i);
 
     std::stack<LSystemState> states;
     ui newestLevel = 0;
@@ -97,8 +97,8 @@ private:
 
     void PushNewState();
     void PushNewState(ui level, ui colourIndex, ui gurthCoefficientComponent, glm::mat4 &transform);
-    glm::mat4 RotateByDegrees(f deg);
-    glm::mat4 translationMatrix(ui noSegments);
+    glm::mat4 RotateByDegrees(ft deg);
+    glm::mat4 TranslationMatrix(ui noSegments);
 
     glm::vec3 COLOURS[NO_COLOURS] = {
         glm::vec3(0.13, 0.54, 0.13),

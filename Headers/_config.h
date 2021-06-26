@@ -55,4 +55,4 @@
 
 typedef unsigned long long u64; 
 typedef unsigned int ui;
-typedef float f;
+typedef float ft;

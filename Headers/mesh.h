@@ -148,24 +148,24 @@ public:
     static const ui maxNoJoints = 6;
 };
 
-// class AnimatedColouredMesh : public Mesh
-// {
-// public:
-//     AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, u32 noVertices, u32 *indices, u32 noIndices, u32 *jointIndices, u32 noJoints);
-// private:
-//     void InitMesh(const PerformentIndexedModel &model);
-//     enum 
-//     {
-//         POSITION_VB,
-//         NORMAL_VB,
-//         COLOUR_VB,
-//         JOINT_INDEX_VB,
-//         INDEX_VB,
+class AnimatedColouredMesh : public Mesh
+{
+public:
+    AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, ui *jointIndices, ui noJoints);
+private:
+    void InitMesh(const PerformentIndexedModel &model);
+    enum 
+    {
+        POSITION_VB,
+        NORMAL_VB,
+        COLOUR_VB,
+        JOINT_INDEX_VB,
+        INDEX_VB,
 
-//         NUM_BUFFERS
-//     };
+        NUM_BUFFERS
+    };
 
-//     GLuint vertexArrayBuffers[NUM_BUFFERS];
-// };
+    GLuint vertexArrayBuffers[NUM_BUFFERS];
+};
 
 #endif //MESH_H

@@ -8,7 +8,7 @@
 class Camera
 {
 public:
-    Camera(const glm::vec3 &pos, f fov, f aspect, f zNear, f zFar)
+    Camera(const glm::vec3 &pos, ft fov, ft aspect, ft zNear, ft zFar)
     {
         perspective = glm::perspective(fov, aspect, zNear, zFar);
         position = pos;

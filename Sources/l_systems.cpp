@@ -67,10 +67,10 @@ void TreeLS::Iterate()
 
 std::string Rule::ChooseReplaceString(Rule &rule, CustomRand &customRand)
 {
-    float accumulator = 0.00001f;
-    float r = customRand.NextFloat(0.0, 1.0);
+    ft accumulator = 0.00001f;
+    ft r = customRand.NextFloat(0.0, 1.0);
 
-    for (ui i = 0; i < rule.replacers.size(); i++)
+    for (ui i = 0; i < rule.replacers.size(); ++i)
     {
         accumulator += rule.replacers[i].odds;
         if (accumulator >= r)

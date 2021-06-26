@@ -8,9 +8,9 @@ class CustomRand
 public:
 	CustomRand(uint32_t seed = 69);
 
-	f NextFloat(f min, f max);
+	ft NextFloat(ft min, ft max);
 	ui NextU32(ui min, ui max);
-	ui NextU32();
+	ui NextUi();
 
 protected:
 private:

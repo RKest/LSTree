@@ -6,9 +6,9 @@ CustomRand::CustomRand(uint32_t seed)
     g_lehmer64_state = seed;
 }
 
-f CustomRand::NextFloat(f min, f max)
+ft CustomRand::NextFloat(ft min, ft max)
 {
-    return ((f)Next() / (f)(0xFFFFFFFFFFFFFFFF)) * (max - min) + min;
+    return ((ft)Next() / (ft)(0xFFFFFFFFFFFFFFFF)) * (max - min) + min;
 }
 
 ui CustomRand::NextU32(ui min, ui max)
@@ -16,7 +16,7 @@ ui CustomRand::NextU32(ui min, ui max)
     return (Next() % (max - min)) + min;
 }
 
-ui CustomRand::NextU32()
+ui CustomRand::NextUi()
 {
     return (ui)Next();
 }

@@ -17,7 +17,7 @@ struct MatSeedPair
 class Distribution
 {
 public:
-	Distribution(CustomRand &_customRand, f minX, f maxX, f minY, f maxY, f closestProxima, ui noElements);
+	Distribution(CustomRand &_customRand, ft minX, ft maxX, ft minY, ft maxY, ft closestProxima, ui noElements);
 	inline std::vector<glm::vec2> &ToVec2()
 	{
 		return coords;
@@ -34,5 +34,5 @@ private:
 	std::vector<glm::vec2> coords;
 	std::vector<glm::mat4> matricies;
 	std::vector<MatSeedPair> matSeedPairs;
-	f Diff(f x, f y);
+	ft Diff(ft x, ft y);
 };

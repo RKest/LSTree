@@ -33,12 +33,12 @@ MeshMaker::MeshMaker(ui seed, const glm::mat4 &_baseTransform, ui _noWalls, cons
     VerticifyMesh(SEGMENT_GURTH_INTERCEPT, COLOURS[BROWN], baseTransform);
     LoadLeafModel();
 
-    for (ui i = 0; i < stringLength; i++)
+    for (ui i = 0; i < stringLength; ++i)
         switch (lsString[i])
         {
         case * "F":
         {
-            ui segmentLength = GetSegmentLength(lsString, i);
+            ui segmentLength = SegmentLength(lsString, i);
             i += segmentLength - 1;
             HandleF(segmentLength);
             break;
@@ -80,8 +80,8 @@ void MeshMaker::HandleF(ui noSegments)
         level = &newestLevel;
 
     topState->gurthExponent += noSegments >> 1;
-    topState->transform *= translationMatrix(noSegments);
-    f radius = GetGurthByCoefficientComponent(topState->gurthExponent);
+    topState->transform *= TranslationMatrix(noSegments);
+    ft radius = GurthByExponent(topState->gurthExponent);
 
     VerticifyMesh(radius, colours[topState->colour], topState->transform);
     IndexMesh(topState->level, *level + 1, 0, noWalls);
@@ -105,14 +105,12 @@ void MeshMaker::HandleF(ui noSegments)
 
 void MeshMaker::HandleMinus()
 {
-    glm::mat4 rotTransform = RotateByDegrees(-SEGMENT_ROTATION);
-    states.top().transform *= rotTransform;
+    states.top().transform *= RotateByDegrees(-SEGMENT_ROTATION);
 }
 
 void MeshMaker::HandlePlus()
 {
-    glm::mat4 rotTransform = RotateByDegrees(SEGMENT_ROTATION);
-    states.top().transform *= rotTransform;
+    states.top().transform *= RotateByDegrees(SEGMENT_ROTATION);
 }
 
 void MeshMaker::HandleLeftBracket()
@@ -128,7 +126,7 @@ void MeshMaker::HandleRightBracket()
 
 void MeshMaker::HandleC()
 {
-    states.top().transform *= translationMatrix(1);
+    states.top().transform *= TranslationMatrix(1);
     LoadLeaf(states.top().transform, leafIndex++);
 }
 
@@ -163,9 +161,9 @@ void MeshMaker::IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall)
     }
 }
 
-void MeshMaker::VerticifyMesh(f radius, const glm::vec3 &colour, const glm::mat4 &transform)
+void MeshMaker::VerticifyMesh(ft radius, const glm::vec3 &colour, const glm::mat4 &transform)
 {
-    f sinVal, cosVal;
+    ft sinVal, cosVal;
     ui firstAngle = 360 / noWalls;
 
     if (cosSinMemTable[firstAngle].Repr())
@@ -182,8 +180,8 @@ void MeshMaker::VerticifyMesh(f radius, const glm::vec3 &colour, const glm::mat4
     {
         for (ui i = 0; i <= 360 - firstAngle; i += firstAngle)
         {
-            sinVal = sin(glm::radians((f)i));
-            cosVal = cos(glm::radians((f)i));
+            sinVal = sin(glm::radians((ft)i));
+            cosVal = cos(glm::radians((ft)i));
             cosSinMemTable[i].sinVal = sinVal;
             cosSinMemTable[i].cosVal = cosVal;
             positions.push_back(transform * glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
@@ -242,18 +240,18 @@ void MeshMaker::PushNewState()
     states.push(std::move(states.top()));
 }
 
-glm::mat4 MeshMaker::RotateByDegrees(f deg)
+glm::mat4 MeshMaker::RotateByDegrees(ft deg)
 {
-    f r = customRand.NextFloat(0.0, 1.0);
+    ft r = customRand.NextFloat(0.0, 1.0);
     return glm::rotate(glm::radians(deg), glm::vec3(cosf(r), r, sinf(r)));
 }
 
-f MeshMaker::GetGurthByCoefficientComponent(ui gurthExponent)
+ft MeshMaker::GurthByExponent(ui gurthExponent)
 {
     return SEGMENT_GURTH_CONSTANT + SEGMENT_GURTH_INTERCEPT * pow(SEGMENT_GURTH_DECAY_RATE, gurthExponent);
 }
 
-ui MeshMaker::GetSegmentLength(const std::string &stateString, ui i)
+ui MeshMaker::SegmentLength(const std::string &stateString, ui i)
 {
     ui segmentLength = 0;
     while (stateString[i] == *"F")
@@ -264,8 +262,7 @@ ui MeshMaker::GetSegmentLength(const std::string &stateString, ui i)
     return segmentLength;
 }
 
-glm::mat4 MeshMaker::translationMatrix(ui noSegments)
+glm::mat4 MeshMaker::TranslationMatrix(ui noSegments)
 {
     return glm::translate(glm::vec3(0, SEGMNET_LENGTH * noSegments, 0));
 }
-

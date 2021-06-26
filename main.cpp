@@ -135,7 +135,7 @@ int main(int argc, char **args)
 
         endPerf = SDL_GetPerformanceCounter();
 
-        f elapsedMS = (endPerf - startPerf) / (f)SDL_GetPerformanceFrequency() * 1000.0f;
+        ft elapsedMS = (endPerf - startPerf) / (ft)SDL_GetPerformanceFrequency() * 1000.0f;
         // std::cout << elapsedMS << std::endl;
         // SDL_Delay(16.666f - elapsedMS);
         counter += 0.01f;

@@ -265,10 +265,15 @@ Joint *Joint::GetJointById(Joint &rootJoint, ui id)
     {
         return GetJointById(joint, id);
     }
+
+    return NULL;
 }
 
 void Joint::AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform)
 {
+    jointTransform *= baseTranform;
+    jointTransform *= alterationTransform;
+    jointTransform *= baseTranfromInverse;
 }
 
 std::vector<Joint> Joint::ToJointVector()
@@ -279,7 +284,11 @@ std::vector<Joint> Joint::ToJointVector()
     //Is the root joint
     if (!currentId)
         for (ui i = 0; i < maxNoJoints; ++i)
-            returnVector.push_back(*GetJointById(*this, ++currentId));
+        {
+            Joint *joint = GetJointById(*this, ++currentId);
+            if(joint != NULL)
+                returnVector.push_back(*joint);
+        }
 
     return returnVector;
 }
