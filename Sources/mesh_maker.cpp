@@ -90,11 +90,9 @@ void MeshMaker::HandleF(ui noSegments)
     topState->level++;
     newestLevel++;
 
-    if (Joint::maxNoJoints > newestJoint)
+    if (states.size() <= MAX_JOINT_DEPTH)
     {
-        auto jointPtr = std::make_unique<Joint>();
-        jointPtr->id = ++newestJoint;
-        jointPtr->jointTransform = topState->transform;
+        auto jointPtr = std::make_unique<Joint>(topState->transform, ++newestJoint);
 
         if (topState->parentJointPtr != NULL)
             topState->parentJointPtr->childJoints.push_back(*jointPtr);

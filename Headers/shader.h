@@ -17,6 +17,7 @@ public:
     void Bind();
     void Update(const Transform &transform, const Camera &camera);
     void Update(const Transform &transform);
+    
     void SetMat4(const std::string &name, const glm::mat4 &arg);
     void SetFloat(const std::string &name, float arg);
     void SetVec3(const std::string &name, const glm::vec3 &arg);

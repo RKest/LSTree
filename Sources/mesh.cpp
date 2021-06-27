@@ -52,6 +52,24 @@ void Mesh::InitNormals(const IndexedModel &model, GLuint *vertexArrayBuffers, ui
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
+void Mesh::InitColours(const PerformentIndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[bufferPosition]);
+    glBufferData(GL_ARRAY_BUFFER, model.noVertices * sizeof(model.colours[0]), model.colours, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+}
+
+void Mesh::InitColours(const IndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition)
+{
+    glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[bufferPosition]);
+    glBufferData(GL_ARRAY_BUFFER, model.colours.size() * sizeof(model.colours[0]), &model.colours[0], GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+}
+
 void Mesh::InitIndices(const PerformentIndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition)
 {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexArrayBuffers[bufferPosition]);
@@ -196,14 +214,7 @@ void ColouredMesh::InitMesh(const PerformentIndexedModel &model)
 
     InitPositions(model, vertexArrayBuffers, POSITION_VB);
     InitNormals(model, vertexArrayBuffers, NORMAL_VB);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[COLOUR_VB]);
-    glBufferData(GL_ARRAY_BUFFER, model.noVertices * sizeof(model.colours[0]), model.colours, GL_STATIC_DRAW);
-
-    //Same here
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
+    InitColours(model, vertexArrayBuffers, COLOUR_VB);
     InitIndices(model, vertexArrayBuffers, INDEX_VB);
 
     glBindVertexArray(0);
@@ -217,13 +228,7 @@ void ColouredMesh::InitMesh(const IndexedModel &model)
 
     InitPositions(model, vertexArrayBuffers, POSITION_VB);
     InitNormals(model, vertexArrayBuffers, NORMAL_VB);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[COLOUR_VB]);
-    glBufferData(GL_ARRAY_BUFFER, model.colours.size() * sizeof(model.colours[0]), &model.colours[0], GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
+    InitColours(model, vertexArrayBuffers, COLOUR_VB);
     InitIndices(model, vertexArrayBuffers, INDEX_VB);
 
     glBindVertexArray(0);
@@ -251,24 +256,6 @@ void PerformentIndexedModel::CalcNormals()
         normals[i] = glm::normalize(normals[i]);
 }
 
-Joint *Joint::GetJointById(Joint &rootJoint, ui id)
-{
-    for (auto &joint : rootJoint.childJoints)
-    {
-        if (joint.id == id)
-        {
-            return &joint;
-        }
-    }
-
-    for (auto &joint : rootJoint.childJoints)
-    {
-        return GetJointById(joint, id);
-    }
-
-    return NULL;
-}
-
 void Joint::AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform)
 {
     jointTransform *= baseTranform;
@@ -279,16 +266,48 @@ void Joint::AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &b
 std::vector<Joint> Joint::ToJointVector()
 {
     std::vector<Joint> returnVector;
-    ui currentId = this->id;
-
-    //Is the root joint
-    if (!currentId)
-        for (ui i = 0; i < maxNoJoints; ++i)
-        {
-            Joint *joint = GetJointById(*this, ++currentId);
-            if(joint != NULL)
-                returnVector.push_back(*joint);
-        }
+    returnVector.push_back(*this);
+    Recurse(*this, returnVector);
+    std::sort(returnVector.begin(), returnVector.end(), Compare);
 
     return returnVector;
+}
+
+void Joint::Recurse(const Joint &joint, std::vector<Joint> &jointVector)
+{
+    for (auto &j : joint.childJoints)
+    {
+        jointVector.push_back(j);
+        Recurse(j, jointVector);
+    }
+}
+
+bool Joint::Compare(const Joint &joint1, const Joint &joint2)
+{
+    return joint1.id < joint2.id;
+}
+
+AnimatedColouredMesh::AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, ui *jointIndices)
+{
+    PerformentIndexedModel model(positions, NULL, colours, indices, noVertices, noIndices, NULL, jointIndices);
+    InitMesh(model);
+}
+
+void AnimatedColouredMesh::InitMesh(const PerformentIndexedModel &model)
+{
+    SetDrawCount(model.noIndices);
+
+    glGenBuffers(NUM_BUFFERS, vertexArrayBuffers);
+
+    InitPositions(model, vertexArrayBuffers, POSITION_VB);
+    InitNormals(model, vertexArrayBuffers, NORMAL_VB);
+    InitColours(model, vertexArrayBuffers, COLOUR_VB);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[JOINT_INDEX_VB]);
+    glBufferData(GL_ARRAY_BUFFER, model.noVertices * sizeof(model.jointIndices[0]), model.jointIndices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
+
+    InitIndices(model, vertexArrayBuffers, INDEX_VB);
 }

@@ -53,6 +53,9 @@
 #define SEGMENT_GURTH_CONSTANT 0.005f
 #define SEGMENT_ROTATION 40.0f
 
+//MESH:Joints
+#define MAX_JOINT_DEPTH 3
+
 typedef unsigned long long u64; 
 typedef unsigned int ui;
 typedef float ft;

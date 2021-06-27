@@ -3,13 +3,11 @@
 #include <fstream>
 #include <iostream>
 
-//zxnm12OP
-
 static void CheckShaderError(GLuint shader, GLuint flag, bool isProgram, const std::string &errorMessage);
 static std::string LoadShader(const std::string &fileName);
 static GLuint CreateShader(const std::string &text, GLenum shaderType);
 
-Shader::Shader(const std::string &filePath, const std::string *paramNames, unsigned int noParams, const std::string *uniformNames, unsigned int noUniforms, bool hasGeometryShader)
+Shader::Shader(const std::string &filePath, const std::string *paramNames, ui noParams, const std::string *uniformNames, ui noUniforms, bool hasGeometryShader)
 {
     program = glCreateProgram();
     shaders.push_back(CreateShader(LoadShader(filePath + "/VS.glsl"), GL_VERTEX_SHADER));
@@ -18,10 +16,10 @@ Shader::Shader(const std::string &filePath, const std::string *paramNames, unsig
     if (hasGeometryShader)
         shaders.push_back(CreateShader(LoadShader(filePath + "/GS.glsl"), GL_GEOMETRY_SHADER));
 
-    for (unsigned int i = 0; i < shaders.size(); i++)
+    for (ui i = 0; i < shaders.size(); ++i)
         glAttachShader(program, shaders[i]);
 
-    for (unsigned int i = 0; i < noParams; i++)
+    for (ui i = 0; i < noParams; ++i)
         glBindAttribLocation(program, i, paramNames[i].c_str());
 
     glLinkProgram(program);
@@ -29,13 +27,13 @@ Shader::Shader(const std::string &filePath, const std::string *paramNames, unsig
     glValidateProgram(program);
     CheckShaderError(program, GL_VALIDATE_STATUS, true, "ERROR: Program is invalid");
 
-    for (unsigned int i = 0; i < noUniforms; i++)
+    for (ui i = 0; i < noUniforms; ++i)
         uniforms[i] = glGetUniformLocation(program, uniformNames[i].c_str());
 }
 
 Shader::~Shader()
 {
-    for (unsigned int i = 0; i < shaders.size(); i++)
+    for (ui i = 0; i < shaders.size(); ++i)
     {
         glDetachShader(program, shaders[i]);
         glDeleteShader(shaders[i]);
@@ -146,24 +144,25 @@ void Shader::SetFloat(const std::string &name, float arg)
     glUniform1f(glGetUniformLocation(program, name.c_str()), arg);
 }
 
-void Shader::SetInt(const std::string &name, unsigned int arg)
+void Shader::SetInt(const std::string &name, ui arg)
 {
     glUniform1i(glGetUniformLocation(program, name.c_str()), arg);
 }
-void Shader::SetMat4(Shader *shaders, unsigned int noShaders, const std::string &name, const glm::mat4 &arg)
+
+void Shader::SetMat4(Shader *shaders, ui noShaders, const std::string &name, const glm::mat4 &arg)
 {
-    for (unsigned int i = 0; i < noShaders; i++)
+    for (ui i = 0; i < noShaders; i++)
         shaders[i].SetMat4(name, arg);
 }
 
-void Shader::SetVec3(Shader *shaders, unsigned int noShaders, const std::string &name, const glm::vec3 &arg)
+void Shader::SetVec3(Shader *shaders, ui noShaders, const std::string &name, const glm::vec3 &arg)
 {
-    for (unsigned int i = 0; i < noShaders; i++)
+    for (ui i = 0; i < noShaders; i++)
         shaders[i].SetVec3(name, arg);
 }
 
-void Shader::SetFloat(Shader *shaders, unsigned int noShaders, const std::string &name, float arg)
+void Shader::SetFloat(Shader *shaders, ui noShaders, const std::string &name, float arg)
 {
-    for (unsigned int i = 0; i < noShaders; i++)
+    for (ui i = 0; i < noShaders; i++)
         shaders[i].SetFloat(name, arg);
 }

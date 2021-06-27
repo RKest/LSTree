@@ -1,6 +1,6 @@
 #include <GL/glew.h>
 #include "glm/gtx/string_cast.hpp"
-//P
+
 #include <iostream>
 #include <unistd.h>
 #include <vector>

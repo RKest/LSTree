@@ -5,10 +5,14 @@
 #include <GL/glew.h>
 #include <string>
 #include <memory>
+#include <algorithm>
 #include "Ext/obj_loader.h"
 
 #include "_config.h"
 
+/*
+    positions, texCoords, colours, indices, noVertices, noIndices, normals(vector ptr), jointIndices
+*/
 struct PerformentIndexedModel
 {
 public:
@@ -16,7 +20,7 @@ public:
         glm::vec3 *_positions, glm::vec2 *_texCoords, glm::vec3 *_colours, ui *_indices,
         ui _noVertices, ui _noIndices,
         const std::vector<glm::vec3> *_normalsPtr = NULL,
-        const std::vector<glm::ivec3> *_jointIndices = NULL
+        ui *_jointIndices = NULL
     )
     : positions(_positions), texCoords(_texCoords), colours(_colours), indices(_indices), noVertices(_noVertices), noIndices(_noIndices), jointIndices(_jointIndices)
     {
@@ -41,8 +45,7 @@ public:
     const ui noIndices;
 
     const std::vector<glm::vec3> *normalsPtr;
-
-    const std::vector<glm::ivec3> *jointIndices;
+    const ui *jointIndices;
 
 private:
     std::vector<glm::vec3> normals;
@@ -62,6 +65,8 @@ protected:
     void InitPositions(const IndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition);
     void InitNormals(const PerformentIndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition);
     void InitNormals(const IndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition);
+    void InitColours(const PerformentIndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition);
+    void InitColours(const IndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition);
     void InitIndices(const PerformentIndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition);
     void InitIndices(const IndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition);
 
@@ -138,20 +143,23 @@ private:
 class Joint 
 {
 public:
-    ui id;
-    glm::mat4 jointTransform = glm::mat4({1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0});
+    Joint(const glm::mat4 &baseTransform, ui _id) : jointTransform(baseTransform), id(_id) {};
+
     std::vector<Joint> childJoints;
     void AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform);
     std::vector<Joint> ToJointVector();
+private:
+    static void Recurse(const Joint &joint, std::vector<Joint> &jointVector);
+    static bool Compare(const Joint &joint1, const Joint &joint2);
+    ui id;
+    glm::mat4 jointTransform;
 
-    static Joint *GetJointById(Joint &rootJoint, ui id);
-    static const ui maxNoJoints = 6;
 };
 
 class AnimatedColouredMesh : public Mesh
 {
 public:
-    AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, ui *jointIndices, ui noJoints);
+    AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, ui *jointIndices);
 private:
     void InitMesh(const PerformentIndexedModel &model);
     enum 
