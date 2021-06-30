@@ -256,6 +256,21 @@ void PerformentIndexedModel::CalcNormals()
         normals[i] = glm::normalize(normals[i]);
 }
 
+void Joint::SetVecToParent()
+{
+    assert(id == 0);
+
+    RecurseChildren(*this, [this](Joint &j){
+        j.vecToParent = glm::normalize(VectorBetweenTranslationMatrices(jointTransform, j.jointTransform));
+    });
+}
+
+glm::vec3 Joint::VectorBetweenTranslationMatrices(const glm::mat4 &mat1, const glm::mat4 &mat2)
+{
+    glm::mat4 returnMat = mat1 * glm::inverse(mat2);
+    return glm::vec3(returnMat[0][3], returnMat[1][3], returnMat[2][3]);
+}
+
 void Joint::AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform)
 {
     jointTransform *= baseTranform;
@@ -267,22 +282,23 @@ std::vector<Joint> Joint::ToJointVector()
 {
     std::vector<Joint> returnVector;
     returnVector.push_back(*this);
-    Recurse(*this, returnVector);
-    std::sort(returnVector.begin(), returnVector.end(), Compare);
+    RecurseChildren(*this, [&returnVector](Joint &j)
+                    { returnVector.push_back(j); });
+    std::sort(returnVector.begin(), returnVector.end(), CompareJoints);
 
     return returnVector;
 }
 
-void Joint::Recurse(const Joint &joint, std::vector<Joint> &jointVector)
+void Joint::RecurseChildren(Joint &joint, std::function<void(Joint &)> callback)
 {
     for (auto &j : joint.childJoints)
     {
-        jointVector.push_back(j);
-        Recurse(j, jointVector);
+        callback(j);
+        RecurseChildren(j, callback);
     }
 }
 
-bool Joint::Compare(const Joint &joint1, const Joint &joint2)
+bool Joint::CompareJoints(const Joint &joint1, const Joint &joint2)
 {
     return joint1.id < joint2.id;
 }
@@ -310,4 +326,13 @@ void AnimatedColouredMesh::InitMesh(const PerformentIndexedModel &model)
     glVertexAttribPointer(3, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
 
     InitIndices(model, vertexArrayBuffers, INDEX_VB);
+
+    glBindVertexArray(0);
+}
+
+void AnimatedColouredMesh::SetJointTransformUniforms(Shader &shader, const std::vector<Joint> &joints)
+{
+    for (ui i = 0; i < joints.size(); ++i)
+        shader.SetMat4("jointTransforms[" + std::to_string(i) + ']', joints[i].jointTransform);
+    std::cout << joints.size() << std::endl;
 }

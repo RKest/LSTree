@@ -6,13 +6,12 @@
 #include <string>
 #include <memory>
 #include <algorithm>
+#include <functional>
 #include "Ext/obj_loader.h"
 
 #include "_config.h"
+#include "shader.h"
 
-/*
-    positions, texCoords, colours, indices, noVertices, noIndices, normals(vector ptr), jointIndices
-*/
 struct PerformentIndexedModel
 {
 public:
@@ -144,22 +143,27 @@ class Joint
 {
 public:
     Joint(const glm::mat4 &baseTransform, ui _id) : jointTransform(baseTransform), id(_id) {};
-
-    std::vector<Joint> childJoints;
     void AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform);
     std::vector<Joint> ToJointVector();
-private:
-    static void Recurse(const Joint &joint, std::vector<Joint> &jointVector);
-    static bool Compare(const Joint &joint1, const Joint &joint2);
-    ui id;
+
+    glm::vec3 vecToParent;
+    std::vector<Joint> childJoints;
     glm::mat4 jointTransform;
 
+    void SetVecToParent();
+private:
+    glm::vec3 VectorBetweenTranslationMatrices(const glm::mat4 &mat1, const glm::mat4 &mat2);
+    
+    static bool CompareJoints(const Joint &joint1, const Joint &joint2);
+    static void RecurseChildren(Joint &joint, std::function<void(Joint&)> callback);
+    ui id;
 };
 
 class AnimatedColouredMesh : public Mesh
 {
 public:
     AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, ui *jointIndices);
+    void SetJointTransformUniforms(Shader &shader, const std::vector<Joint> &joints);
 private:
     void InitMesh(const PerformentIndexedModel &model);
     enum 

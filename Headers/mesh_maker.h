@@ -35,9 +35,9 @@ class MeshMaker
 public:
     MeshMaker(ui seed, const glm::mat4 &baseTransform, ui _noWalls, const std::string &lsString);
 
-    std::unique_ptr<ColouredMesh> TreeMesh();
-    std::unique_ptr<ColouredMesh> StemMesh();
-    std::unique_ptr<ColouredMesh> BladeMesh();
+    std::unique_ptr<AnimatedColouredMesh> TreeMesh();
+    std::unique_ptr<AnimatedColouredMesh> StemMesh();
+    std::unique_ptr<AnimatedColouredMesh> BladeMesh();
 
     ~MeshMaker();
 
@@ -64,6 +64,10 @@ private:
     std::vector<ui> stemIndices;
     std::vector<ui> bladeIndices;
 
+    std::vector<ui> jointIndices;
+    std::vector<ui> stemJointIndices;
+    std::vector<ui> bladeJointIndices;
+
     ui noLevels;
     ui noWalls;
     ft radius;
@@ -71,7 +75,6 @@ private:
     //361 as of 360 possible angles to memoize indexed by the angle value
     CosSinPair cosSinMemTable[361] = {{0, 0}};
 
-    glm::mat4 RandomRotationMatrix();
     ft GurthByExponent(ui gurthExponent);
     ui SegmentLength(const std::string &stateString, ui i);
 
@@ -79,7 +82,7 @@ private:
     ui newestLevel = 0;
     ui newestJoint = 0;
 
-    void HandleF(ui noSegments);
+    void HandleF(ui noSegments, const glm::mat4 &localTransform);
     void HandlePlus();
     void HandleMinus();
     void HandleLeftBracket();

@@ -41,18 +41,20 @@ int main(int argc, char **args)
     CustomRand customRand(69420);
     Display display(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello World");
 
-    std::vector<std::unique_ptr<ColouredMesh>> treeMeshes;
+    std::vector<std::unique_ptr<AnimatedColouredMesh>> treeMeshes;
     std::vector<std::unique_ptr<MeshMaker>> makers;
 
     const std::string floorParams[] = {"position", "normal"};
     const std::string lightParams[] = {"position", "normal"};
     const std::string treeParams[] = {"position", "normal", "colour"};
+    const std::string animatedTreeParams[] = {"position", "normal", "colour", "jointIndex"};
     const std::string shadowMapParams[] = {"position"};
     const std::string uniforms[] = {"transform", "projection"};
 
     Shader floorShader("./Shaders/Floor", floorParams, ARR_SIZE(floorParams), uniforms, ARR_SIZE(uniforms));
     Shader lightShader("./Shaders/Light", lightParams, ARR_SIZE(lightParams), uniforms, ARR_SIZE(uniforms));
     Shader treeShader("./Shaders/Tree", treeParams, ARR_SIZE(treeParams), uniforms, ARR_SIZE(uniforms));
+    Shader animatedTreeShader("./Shaders/Tree2", animatedTreeParams, ARR_SIZE(animatedTreeParams), uniforms, ARR_SIZE(uniforms));
     Shader shadowMapShader("./Shaders/ShadowMap", shadowMapParams, ARR_SIZE(shadowMapParams), uniforms, ARR_SIZE(uniforms), true);
 
     const std::vector<MatSeedPair> matSeedPairs = 
@@ -139,11 +141,6 @@ int main(int argc, char **args)
         // std::cout << elapsedMS << std::endl;
         // SDL_Delay(16.666f - elapsedMS);
         counter += 0.01f;
-    }
-
-    for (auto &m : treeMeshes)
-    {
-        m->~ColouredMesh();
     }
 
     return 0;

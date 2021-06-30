@@ -38,9 +38,11 @@ MeshMaker::MeshMaker(ui seed, const glm::mat4 &_baseTransform, ui _noWalls, cons
         {
         case * "F":
         {
-            ui segmentLength = SegmentLength(lsString, i);
-            i += segmentLength - 1;
-            HandleF(segmentLength);
+            ui noSegments = SegmentLength(lsString, i);
+            glm::mat4 localTransform = TranslationMatrix(noSegments);
+            
+            i += noSegments - 1;
+            HandleF(noSegments, localTransform);
             break;
         }
         case * "+":
@@ -71,7 +73,7 @@ MeshMaker::~MeshMaker()
     std::cout << "Maker Destructed" << std::endl;
 }
 
-void MeshMaker::HandleF(ui noSegments)
+void MeshMaker::HandleF(ui noSegments, const glm::mat4 &localTransform)
 {
     LSystemState *topState = &states.top();
     ui *level = &topState->level;
@@ -80,7 +82,7 @@ void MeshMaker::HandleF(ui noSegments)
         level = &newestLevel;
 
     topState->gurthExponent += noSegments >> 1;
-    topState->transform *= TranslationMatrix(noSegments);
+    topState->transform *= localTransform;
     ft radius = GurthByExponent(topState->gurthExponent);
 
     VerticifyMesh(radius, colours[topState->colour], topState->transform);
