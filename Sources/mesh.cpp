@@ -256,45 +256,66 @@ void PerformentIndexedModel::CalcNormals()
         normals[i] = glm::normalize(normals[i]);
 }
 
-void Joint::SetVecToParent()
+Joint::Joint(const glm::mat4 &_baseTransform, ui _id, Joint *_parentJointPtr)
+    : id(_id), parentJointPtr(_parentJointPtr), baseTransform(_baseTransform), baseTransformInverse(glm::inverse(_baseTransform))
 {
-    assert(id == 0);
+    jointTransform = {
+        {1, 0, 0, 0},
+        {0, 1, 0, 0},
+        {0, 0, 1, 0},
+        {0, 0, 0, 1}};
 
-    RecurseChildren(*this, [this](Joint &j){
-        j.vecToParent = glm::normalize(VectorBetweenTranslationMatrices(jointTransform, j.jointTransform));
-    });
+    if (_parentJointPtr != nullptr)
+    {
+        glm::mat4 toParentTransform = parentJointPtr->jointTransform * glm::inverse(jointTransform);
+        toParentVector = glm::normalize(glm::vec3(
+            toParentTransform[0][3],
+            toParentTransform[1][3],
+            toParentTransform[2][3]));
+    }
+};
+
+
+glm::ivec3 Joint::AffectedIndices()
+{
+    glm::ivec3 returnVector;
+
+    Joint *currentlyExaminedJoint = this;
+    ui currentVectorIndex = 0;
+
+    while (currentlyExaminedJoint->parentJointPtr != nullptr)
+    {
+        returnVector[currentVectorIndex] = (currentlyExaminedJoint->id);
+        currentlyExaminedJoint = currentlyExaminedJoint->parentJointPtr;
+    }
+
+    return returnVector;
 }
 
-glm::vec3 Joint::VectorBetweenTranslationMatrices(const glm::mat4 &mat1, const glm::mat4 &mat2)
+void Joint::AlterJointTrasform(const glm::mat4 &alterationTransform)
 {
-    glm::mat4 returnMat = mat1 * glm::inverse(mat2);
-    return glm::vec3(returnMat[0][3], returnMat[1][3], returnMat[2][3]);
-}
-
-void Joint::AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform)
-{
-    jointTransform *= baseTranform;
+    jointTransform *= baseTransform;
     jointTransform *= alterationTransform;
-    jointTransform *= baseTranfromInverse;
+    jointTransform *= baseTransformInverse;
 }
 
 std::vector<Joint> Joint::ToJointVector()
 {
     std::vector<Joint> returnVector;
     returnVector.push_back(*this);
-    RecurseChildren(*this, [&returnVector](Joint &j)
-                    { returnVector.push_back(j); });
+    RecurseChildren(*this, [&returnVector](Joint *j)
+                    { returnVector.push_back(*j); });
     std::sort(returnVector.begin(), returnVector.end(), CompareJoints);
 
     return returnVector;
 }
 
-void Joint::RecurseChildren(Joint &joint, std::function<void(Joint &)> callback)
+void Joint::RecurseChildren(Joint &joint, std::function<void(Joint *)> callback)
 {
-    for (auto &j : joint.childJoints)
+    for (auto j : joint.childJointPtrs)
     {
+        RecurseChildren(*j, callback);
         callback(j);
-        RecurseChildren(j, callback);
     }
 }
 
@@ -303,7 +324,7 @@ bool Joint::CompareJoints(const Joint &joint1, const Joint &joint2)
     return joint1.id < joint2.id;
 }
 
-AnimatedColouredMesh::AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, ui *jointIndices)
+AnimatedColouredMesh::AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, glm::ivec3 *jointIndices)
 {
     PerformentIndexedModel model(positions, NULL, colours, indices, noVertices, noIndices, NULL, jointIndices);
     InitMesh(model);
@@ -323,7 +344,7 @@ void AnimatedColouredMesh::InitMesh(const PerformentIndexedModel &model)
     glBufferData(GL_ARRAY_BUFFER, model.noVertices * sizeof(model.jointIndices[0]), model.jointIndices, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 1, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(3, 3, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
 
     InitIndices(model, vertexArrayBuffers, INDEX_VB);
 
@@ -335,4 +356,10 @@ void AnimatedColouredMesh::SetJointTransformUniforms(Shader &shader, const std::
     for (ui i = 0; i < joints.size(); ++i)
         shader.SetMat4("jointTransforms[" + std::to_string(i) + ']', joints[i].jointTransform);
     std::cout << joints.size() << std::endl;
+}
+
+Joint::~Joint()
+{
+    for(auto &j : childJointPtrs)
+        delete j;
 }

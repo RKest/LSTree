@@ -1,4 +1,4 @@
-#include "mesh_maker.h"
+#include "tree.h"
 #include "glm/gtx/string_cast.hpp"
 #include <iostream>
 #include <numeric>
@@ -6,32 +6,45 @@
 
 #define TRANSLATION_AMOUNT 1.0
 
-std::unique_ptr<ColouredMesh> MeshMaker::TreeMesh()
+std::unique_ptr<AnimatedColouredMesh> Tree::BarkMesh()
 {
-    return std::make_unique<ColouredMesh>(&positions[0], &colours[0], positions.size(), &indicies[0], indicies.size());
+    return std::make_unique<AnimatedColouredMesh>(
+        &positions[0], &colours[0], positions.size(), 
+        &indicies[0], indicies.size(), &jointIndices[0]);
 }
 
-std::unique_ptr<ColouredMesh> MeshMaker::StemMesh()
+std::unique_ptr<AnimatedColouredMesh> Tree::StemMesh()
 {
-    return std::make_unique<ColouredMesh>(&stemPositions[0], &stemColours[0], stemPositions.size(), &stemIndices[0], stemIndices.size());
+    return std::make_unique<AnimatedColouredMesh>(
+        &stemPositions[0], &stemColours[0], stemPositions.size(), 
+        &stemIndices[0], stemIndices.size(), &stemJointIndices[0]);
 }
 
-std::unique_ptr<ColouredMesh> MeshMaker::BladeMesh()
+std::unique_ptr<AnimatedColouredMesh> Tree::BladeMesh()
 {
-    return std::make_unique<ColouredMesh>(&bladePositions[0], &bladeColours[0], bladePositions.size(), &bladeIndices[0], bladeIndices.size());
+    return std::make_unique<AnimatedColouredMesh>(
+        &bladePositions[0], &bladeColours[0], bladePositions.size(), 
+        &bladeIndices[0], bladeIndices.size(), &bladeJointIndices[0]);
 }
 
-MeshMaker::MeshMaker(ui seed, const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString) : baseTransform(_baseTransform), noWalls(_noWalls), rootJoint(NULL)
+Tree::Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString, CustomRand &_customRand, Joint &_rootJoint)
+: baseTransform(_baseTransform), baseTransformInverse(glm::inverse(_baseTransform)), noWalls(_noWalls), customRand(_customRand), rootJoint(_rootJoint)
 {
-    customRand = CustomRand(seed);
-
-    //Joint Shenanigans
-    baseTransformInverse = glm::inverse(baseTransform);
     ui stringLength = lsString.length();
 
-    PushNewState(0, BROWN, 0, baseTransform);
-    VerticifyMesh(SEGMENT_GURTH_INTERCEPT, COLOURS[BROWN], baseTransform);
+    LSystemState initialState;
+
+    initialState.level = 0;
+    initialState.colour = BROWN;
+    initialState.gurthExponent = 0;
+    initialState.transform = _baseTransform;
+    initialState.youngestJoint = &rootJoint;
+    initialState.jointCapacity = MAX_JOINT_DEPTH;
+
+    VerticifyMesh(initialState);
     LoadLeafModel();
+
+    states.push(std::move(initialState));
 
     for (ui i = 0; i < stringLength; ++i)
         switch (lsString[i])
@@ -68,12 +81,12 @@ MeshMaker::MeshMaker(ui seed, const glm::mat4 &_baseTransform, ui _noWalls, cons
         }
 }
 
-MeshMaker::~MeshMaker()
+Tree::~Tree()
 {
-    std::cout << "Maker Destructed" << std::endl;
+    std::cout << "Tree Destructed" << std::endl;
 }
 
-void MeshMaker::HandleF(ui noSegments, const glm::mat4 &localTransform)
+void Tree::HandleF(ui noSegments, const glm::mat4 &localTransform)
 {
     LSystemState *topState = &states.top();
     ui *level = &topState->level;
@@ -85,52 +98,50 @@ void MeshMaker::HandleF(ui noSegments, const glm::mat4 &localTransform)
     topState->transform *= localTransform;
     ft radius = GurthByExponent(topState->gurthExponent);
 
-    VerticifyMesh(radius, colours[topState->colour], topState->transform);
+    VerticifyMesh(*topState);
     IndexMesh(topState->level, *level + 1, 0, noWalls);
 
     topState->level = *level;
     topState->level++;
     newestLevel++;
 
-    if (states.size() <= MAX_JOINT_DEPTH)
+    if (topState->jointCapacity)
     {
-        auto jointPtr = std::make_unique<Joint>(topState->transform, ++newestJoint);
-
-        if (topState->parentJointPtr != NULL)
-            topState->parentJointPtr->childJoints.push_back(*jointPtr);
-        else
-            topState->parentJointPtr = std::move(jointPtr);
+        --topState->jointCapacity;
+        Joint *jointPtr = new Joint(topState->transform, ++newestJoint, topState->youngestJoint);
+        topState->youngestJoint->childJointPtrs.push_back(jointPtr);
+        topState->youngestJoint = jointPtr;
     }
 }
 
-void MeshMaker::HandleMinus()
+void Tree::HandleMinus()
 {
     states.top().transform *= RotateByDegrees(-SEGMENT_ROTATION);
 }
 
-void MeshMaker::HandlePlus()
+void Tree::HandlePlus()
 {
     states.top().transform *= RotateByDegrees(SEGMENT_ROTATION);
 }
 
-void MeshMaker::HandleLeftBracket()
+void Tree::HandleLeftBracket()
 {
     states.top().gurthExponent *= 1.3;
-    PushNewState();
+    states.push(states.top());
 }
 
-void MeshMaker::HandleRightBracket()
+void Tree::HandleRightBracket()
 {
     states.pop();
 }
 
-void MeshMaker::HandleC()
+void Tree::HandleC()
 {
     states.top().transform *= TranslationMatrix(1);
-    LoadLeaf(states.top().transform, leafIndex++);
+    LoadLeaf(states.top().transform, leafIndex++, states.top().youngestJoint->AffectedIndices());
 }
 
-void MeshMaker::HandleG()
+void Tree::HandleG()
 {
     states.top().gurthExponent++;
 }
@@ -139,7 +150,7 @@ void MeshMaker::HandleG()
 Indexes the verticies such that they describe a enclosed by <noWalls> space
 Each wall is made with 2 triangles indexed counter-clockwise
 */
-void MeshMaker::IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall)
+void Tree::IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall)
 {
     ui level_walls, first_and_forth, second_and_sixth, last_el_overflow, level_interval, interval_walls;
     level_interval = toLevel - fromLevel;
@@ -161,10 +172,14 @@ void MeshMaker::IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall)
     }
 }
 
-void MeshMaker::VerticifyMesh(ft radius, const glm::vec3 &colour, const glm::mat4 &transform)
+void Tree::VerticifyMesh(const LSystemState &topState)
 {
     ft sinVal, cosVal;
     ui firstAngle = 360 / noWalls;
+
+    glm::ivec3 jointIndicesVec = topState.youngestJoint->AffectedIndices();
+    // glm::ivec3 jointIndicesVec = glm::ivec3(0);
+    ft radius = GurthByExponent(topState.gurthExponent);
 
     if (cosSinMemTable[firstAngle].Repr())
     {
@@ -172,8 +187,9 @@ void MeshMaker::VerticifyMesh(ft radius, const glm::vec3 &colour, const glm::mat
         {
             sinVal = cosSinMemTable[i].sinVal;
             cosVal = cosSinMemTable[i].cosVal;
-            positions.push_back(transform * glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
-            colours.push_back(colour);
+            positions.push_back(topState.transform * glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
+            colours.push_back(COLOURS[topState.colour]);
+            jointIndices.push_back(jointIndicesVec);
         }
     }
     else
@@ -184,25 +200,27 @@ void MeshMaker::VerticifyMesh(ft radius, const glm::vec3 &colour, const glm::mat
             cosVal = cos(glm::radians((ft)i));
             cosSinMemTable[i].sinVal = sinVal;
             cosSinMemTable[i].cosVal = cosVal;
-            positions.push_back(transform * glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
-            colours.push_back(colour);
+            positions.push_back(topState.transform * glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
+            colours.push_back(COLOURS[topState.colour]);
+            jointIndices.push_back(jointIndicesVec);
         }
     }
 }
 
-void MeshMaker::LoadLeafModel()
+void Tree::LoadLeafModel()
 {
     leafStemModel = OBJModel("./Resources/obj/Leaf/stem.obj").ToIndexedModel();
     leafBladeModel = OBJModel("./Resources/obj/Leaf/blade.obj").ToIndexedModel();
 }
 
-void MeshMaker::LoadLeaf(const glm::mat4 &transform, ui leafIndex)
+void Tree::LoadLeaf(const glm::mat4 &transform, ui leafIndex, const glm::ivec3 &_jointIndices)
 {
     for (ui i = 0; i < leafStemModel.positions.size(); ++i)
     {
         glm::vec3 *pos = &leafStemModel.positions[i];
         stemPositions.push_back(transform * glm::vec4(pos->x, pos->y, pos->z, TRANSLATION_AMOUNT));
         stemColours.push_back(COLOURS[BROWN]);
+        stemJointIndices.push_back(_jointIndices);
     }
 
     for (ui i = 0; i < leafStemModel.indices.size(); ++i)
@@ -215,6 +233,7 @@ void MeshMaker::LoadLeaf(const glm::mat4 &transform, ui leafIndex)
         glm::vec3 *pos = &leafBladeModel.positions[i];
         bladePositions.push_back(transform * glm::vec4(pos->x, pos->y, pos->z, TRANSLATION_AMOUNT));
         bladeColours.push_back(COLOURS[GREEN]);
+        bladeJointIndices.push_back(_jointIndices);
     }
 
     for (ui i = 0; i < leafBladeModel.indices.size(); ++i)
@@ -223,35 +242,18 @@ void MeshMaker::LoadLeaf(const glm::mat4 &transform, ui leafIndex)
     }
 }
 
-void MeshMaker::PushNewState(ui level, ui colourIndex, ui gurthCoefficientComponent, glm::mat4 &transform)
-{
-    LSystemState state;
-    state.level = level;
-    state.transform = transform;
-    state.colour = colourIndex;
-    state.gurthExponent = gurthCoefficientComponent;
-    state.parentJointPtr.reset(NULL);
-
-    states.push(std::move(state));
-}
-
-void MeshMaker::PushNewState()
-{
-    states.push(std::move(states.top()));
-}
-
-glm::mat4 MeshMaker::RotateByDegrees(ft deg)
+glm::mat4 Tree::RotateByDegrees(ft deg)
 {
     ft r = customRand.NextFloat(0.0, 1.0);
     return glm::rotate(glm::radians(deg), glm::vec3(cosf(r), r, sinf(r)));
 }
 
-ft MeshMaker::GurthByExponent(ui gurthExponent)
+ft Tree::GurthByExponent(ui gurthExponent)
 {
     return SEGMENT_GURTH_CONSTANT + SEGMENT_GURTH_INTERCEPT * pow(SEGMENT_GURTH_DECAY_RATE, gurthExponent);
 }
 
-ui MeshMaker::SegmentLength(const std::string &stateString, ui i)
+ui Tree::SegmentLength(const std::string &stateString, ui i)
 {
     ui segmentLength = 0;
     while (stateString[i] == *"F")
@@ -262,7 +264,7 @@ ui MeshMaker::SegmentLength(const std::string &stateString, ui i)
     return segmentLength;
 }
 
-glm::mat4 MeshMaker::TranslationMatrix(ui noSegments)
+glm::mat4 Tree::TranslationMatrix(ui noSegments)
 {
     return glm::translate(glm::vec3(0, SEGMNET_LENGTH * noSegments, 0));
 }

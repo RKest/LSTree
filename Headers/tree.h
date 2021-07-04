@@ -27,27 +27,31 @@ struct LSystemState
     ui level;
     ui colour;
     ui gurthExponent;
-    std::unique_ptr<Joint> parentJointPtr;
+    Joint *youngestJoint;
+    ui jointCapacity;
 };
 
-class MeshMaker
+class Tree
 {
 public:
-    MeshMaker(ui seed, const glm::mat4 &baseTransform, ui _noWalls, const std::string &lsString);
+    Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString, CustomRand &_customRand, Joint &_rootJoint);
 
-    std::unique_ptr<AnimatedColouredMesh> TreeMesh();
+    std::unique_ptr<AnimatedColouredMesh> BarkMesh();
     std::unique_ptr<AnimatedColouredMesh> StemMesh();
     std::unique_ptr<AnimatedColouredMesh> BladeMesh();
 
-    ~MeshMaker();
+    ~Tree();
 
 protected:
 private:
-    void VerticifyMesh(ft radius, const glm::vec3 &colour, const glm::mat4 &transform);
+    void VerticifyMesh(const LSystemState &topState);
     void IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall);
 
-    CustomRand customRand;
-    Joint *rootJoint;
+    CustomRand &customRand;
+    Joint &rootJoint;
+
+    IndexedModel leafStemModel;
+    IndexedModel leafBladeModel;
 
     glm::mat4 baseTransform;
     glm::mat4 baseTransformInverse;
@@ -64,19 +68,12 @@ private:
     std::vector<ui> stemIndices;
     std::vector<ui> bladeIndices;
 
-    std::vector<ui> jointIndices;
-    std::vector<ui> stemJointIndices;
-    std::vector<ui> bladeJointIndices;
+    std::vector<glm::ivec3> jointIndices;
+    std::vector<glm::ivec3> stemJointIndices;
+    std::vector<glm::ivec3> bladeJointIndices;
 
     ui noLevels;
     ui noWalls;
-    ft radius;
-
-    //361 as of 360 possible angles to memoize indexed by the angle value
-    CosSinPair cosSinMemTable[361] = {{0, 0}};
-
-    ft GurthByExponent(ui gurthExponent);
-    ui SegmentLength(const std::string &stateString, ui i);
 
     std::stack<LSystemState> states;
     ui newestLevel = 0;
@@ -90,6 +87,15 @@ private:
     void HandleC();
     void HandleG();
 
+    void LoadLeafModel();
+    void LoadLeaf(const glm::mat4 &transform, ui leafIndex, const glm::ivec3 &_jointIndices);
+
+    ft GurthByExponent(ui gurthExponent);
+    ui SegmentLength(const std::string &stateString, ui i);
+    glm::mat4 RotateByDegrees(ft deg);
+    glm::mat4 TranslationMatrix(ui noSegments);
+
+    CosSinPair cosSinMemTable[361] = {{0, 0}};
     enum Coluors
     {
         GREEN,
@@ -98,11 +104,6 @@ private:
         NO_COLOURS
     };
 
-    void PushNewState();
-    void PushNewState(ui level, ui colourIndex, ui gurthCoefficientComponent, glm::mat4 &transform);
-    glm::mat4 RotateByDegrees(ft deg);
-    glm::mat4 TranslationMatrix(ui noSegments);
-
     glm::vec3 COLOURS[NO_COLOURS] = {
         glm::vec3(0.13, 0.54, 0.13),
         glm::vec3(0.31, 0.14, 0.07)};
@@ -110,11 +111,7 @@ private:
     //Leafs
     ui leafIndex = 0;
 
-    IndexedModel leafStemModel;
-    IndexedModel leafBladeModel;
-
-    void LoadLeafModel();
-    void LoadLeaf(const glm::mat4 &transform, ui leafIndex);
+    //361 as of 360 possible angles to memoize indexed by the angle value
 };
 
 #endif

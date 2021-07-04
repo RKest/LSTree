@@ -19,7 +19,7 @@ public:
         glm::vec3 *_positions, glm::vec2 *_texCoords, glm::vec3 *_colours, ui *_indices,
         ui _noVertices, ui _noIndices,
         const std::vector<glm::vec3> *_normalsPtr = NULL,
-        ui *_jointIndices = NULL
+        glm::ivec3 *_jointIndices = NULL
     )
     : positions(_positions), texCoords(_texCoords), colours(_colours), indices(_indices), noVertices(_noVertices), noIndices(_noIndices), jointIndices(_jointIndices)
     {
@@ -44,7 +44,7 @@ public:
     const ui noIndices;
 
     const std::vector<glm::vec3> *normalsPtr;
-    const ui *jointIndices;
+    const glm::ivec3 *jointIndices;
 
 private:
     std::vector<glm::vec3> normals;
@@ -142,27 +142,33 @@ private:
 class Joint 
 {
 public:
-    Joint(const glm::mat4 &baseTransform, ui _id) : jointTransform(baseTransform), id(_id) {};
-    void AlterJointTrasform(const glm::mat4 &baseTranform, const glm::mat4 &baseTranfromInverse, const glm::mat4 &alterationTransform);
+    Joint(const glm::mat4 &baseTransform, ui _id, Joint *_parentJointPtr);
+    void AlterJointTrasform(const glm::mat4 &alterationTransform);
+    glm::ivec3 AffectedIndices();
+
+    glm::vec3 toParentVector;
+    std::vector<Joint *> childJointPtrs;
+
+    glm::mat4 jointTransform;
+    glm::mat4 baseTransform;
+    glm::mat4 baseTransformInverse;
+
     std::vector<Joint> ToJointVector();
 
-    glm::vec3 vecToParent;
-    std::vector<Joint> childJoints;
-    glm::mat4 jointTransform;
-
-    void SetVecToParent();
-private:
-    glm::vec3 VectorBetweenTranslationMatrices(const glm::mat4 &mat1, const glm::mat4 &mat2);
-    
-    static bool CompareJoints(const Joint &joint1, const Joint &joint2);
-    static void RecurseChildren(Joint &joint, std::function<void(Joint&)> callback);
     ui id;
+    Joint* parentJointPtr;
+    static void RecurseChildren(Joint &joint, std::function<void(Joint *)> callback);
+    ~Joint();
+private:
+    glm::vec3 VectorBetweenTranslationMatrices(const glm::mat4 &parentTransform, const glm::mat4 &childTransform);
+
+    static bool CompareJoints(const Joint &joint1, const Joint &joint2);
 };
 
 class AnimatedColouredMesh : public Mesh
 {
 public:
-    AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, ui *jointIndices);
+    AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, glm::ivec3 *jointIndices);
     void SetJointTransformUniforms(Shader &shader, const std::vector<Joint> &joints);
 private:
     void InitMesh(const PerformentIndexedModel &model);

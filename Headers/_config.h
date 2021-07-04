@@ -9,7 +9,7 @@
 
 //DISTIRBUTION
 #ifndef TREE_NO
-#define TREE_NO 10
+#define TREE_NO 1
 #endif
 
 #ifndef TREE_AREA_RADIOUS

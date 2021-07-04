@@ -19,7 +19,7 @@
 #include "transform.h"
 #include "camera.h"
 #include "controler.h"
-#include "mesh_maker.h"
+#include "tree.h"
 #include "l_systems.h"
 #include "distribution.h"
 #include "shadow_map.h"
@@ -42,7 +42,7 @@ int main(int argc, char **args)
     Display display(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello World");
 
     std::vector<std::unique_ptr<AnimatedColouredMesh>> treeMeshes;
-    std::vector<std::unique_ptr<MeshMaker>> makers;
+    std::vector<std::unique_ptr<Tree>> trees;
 
     const std::string floorParams[] = {"position", "normal"};
     const std::string lightParams[] = {"position", "normal"};
@@ -61,19 +61,21 @@ int main(int argc, char **args)
         Distribution(customRand, -TREE_AREA_RADIOUS, TREE_AREA_RADIOUS, -TREE_AREA_RADIOUS, TREE_AREA_RADIOUS, TREE_MIN_PROXIMA, TREE_NO).ToMatSeedPair();
 
     std::for_each(
-        std::execution::par,
+        std::execution::seq,
         matSeedPairs.begin(),
         matSeedPairs.end(),
-        [&makers, noIterations](auto &&pair)
+        [&trees, noIterations](auto &&pair)
         {
-            makers.push_back(std::make_unique<MeshMaker>(pair.seed, pair.mat, WALL_NO, TreeLS(pair.seed, noIterations).Result()));
+            Joint rootJoint(pair.mat, 0, nullptr);
+            CustomRand rand(pair.seed);
+            trees.push_back(std::make_unique<Tree>(pair.mat, WALL_NO, TreeLS(pair.seed, noIterations).Result(), rand, rootJoint));
         });
 
-    for (auto &m : makers)
+    for (auto &t : trees)
     {
-        treeMeshes.push_back(std::move(m->TreeMesh()));
-        treeMeshes.push_back(std::move(m->StemMesh()));
-        treeMeshes.push_back(std::move(m->BladeMesh()));
+        treeMeshes.push_back(std::move(t->BarkMesh()));
+        treeMeshes.push_back(std::move(t->StemMesh()));
+        treeMeshes.push_back(std::move(t->BladeMesh()));
     }
 
     ShadowMap shadowMap;
