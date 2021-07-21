@@ -5,8 +5,6 @@
 
 #include "_config.h"
 
-
-
 class ShadowMap
 {
 public:

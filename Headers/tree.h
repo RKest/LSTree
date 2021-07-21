@@ -34,11 +34,13 @@ struct LSystemState
 class Tree
 {
 public:
-    Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString, CustomRand &_customRand, Joint &_rootJoint);
+    Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString, CustomRand &_customRand, Joint *_rootJoint);
 
     std::unique_ptr<AnimatedColouredMesh> BarkMesh();
     std::unique_ptr<AnimatedColouredMesh> StemMesh();
     std::unique_ptr<AnimatedColouredMesh> BladeMesh();
+
+    std::unique_ptr<std::vector<Joint *>> JointPtrVectorPtr();
 
     ~Tree();
 
@@ -48,7 +50,7 @@ private:
     void IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall);
 
     CustomRand &customRand;
-    Joint &rootJoint;
+    Joint *rootJointPtr;
 
     IndexedModel leafStemModel;
     IndexedModel leafBladeModel;

@@ -272,20 +272,23 @@ Joint::Joint(const glm::mat4 &_baseTransform, ui _id, Joint *_parentJointPtr)
             toParentTransform[0][3],
             toParentTransform[1][3],
             toParentTransform[2][3]));
+
+        jointTransform = glm::rotate(
+            WIND_AFFECTION_ANGLE,
+            glm::cross(toParentVector, WIND_DIRECTION_VECTOR));
     }
 };
 
-
 glm::ivec3 Joint::AffectedIndices()
 {
-    glm::ivec3 returnVector;
+    glm::ivec3 returnVector(-1);
 
     Joint *currentlyExaminedJoint = this;
     ui currentVectorIndex = 0;
 
     while (currentlyExaminedJoint->parentJointPtr != nullptr)
     {
-        returnVector[currentVectorIndex] = (currentlyExaminedJoint->id);
+        returnVector[currentVectorIndex++] = currentlyExaminedJoint->id;
         currentlyExaminedJoint = currentlyExaminedJoint->parentJointPtr;
     }
 
@@ -299,29 +302,29 @@ void Joint::AlterJointTrasform(const glm::mat4 &alterationTransform)
     jointTransform *= baseTransformInverse;
 }
 
-std::vector<Joint> Joint::ToJointVector()
+std::vector<Joint *> *Joint::ToJointPtrVector(Joint *rootJoint)
 {
-    std::vector<Joint> returnVector;
-    returnVector.push_back(*this);
-    RecurseChildren(*this, [&returnVector](Joint *j)
-                    { returnVector.push_back(*j); });
-    std::sort(returnVector.begin(), returnVector.end(), CompareJoints);
+    std::vector<Joint *> *returnVector = new std::vector<Joint *>;
+    returnVector->push_back(rootJoint);
+    RecurseChildren(rootJoint, returnVector);
+    returnVector->shrink_to_fit();
+    std::sort(returnVector->begin(), returnVector->end(), CompareJoints);
 
     return returnVector;
 }
 
-void Joint::RecurseChildren(Joint &joint, std::function<void(Joint *)> callback)
+void Joint::RecurseChildren(Joint *joint, std::vector<Joint *> *jointVector)
 {
-    for (auto j : joint.childJointPtrs)
+    for (ui i = 0; i < joint->childJointPtrs.size(); ++i)
     {
-        RecurseChildren(*j, callback);
-        callback(j);
+        jointVector->push_back(joint->childJointPtrs[i]);
+        RecurseChildren(joint->childJointPtrs[i], jointVector);
     }
 }
 
-bool Joint::CompareJoints(const Joint &joint1, const Joint &joint2)
+bool Joint::CompareJoints(const Joint *joint1, const Joint *joint2)
 {
-    return joint1.id < joint2.id;
+    return joint1->id < joint2->id;
 }
 
 AnimatedColouredMesh::AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, glm::ivec3 *jointIndices)
@@ -351,15 +354,8 @@ void AnimatedColouredMesh::InitMesh(const PerformentIndexedModel &model)
     glBindVertexArray(0);
 }
 
-void AnimatedColouredMesh::SetJointTransformUniforms(Shader &shader, const std::vector<Joint> &joints)
-{
-    for (ui i = 0; i < joints.size(); ++i)
-        shader.SetMat4("jointTransforms[" + std::to_string(i) + ']', joints[i].jointTransform);
-    std::cout << joints.size() << std::endl;
-}
-
 Joint::~Joint()
 {
-    for(auto &j : childJointPtrs)
+    for (auto &j : childJointPtrs)
         delete j;
 }

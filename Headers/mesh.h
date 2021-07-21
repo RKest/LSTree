@@ -147,29 +147,28 @@ public:
     glm::ivec3 AffectedIndices();
 
     glm::vec3 toParentVector;
-    std::vector<Joint *> childJointPtrs;
-
     glm::mat4 jointTransform;
+
+    std::vector<Joint *> childJointPtrs;
+    static std::vector<Joint *> *ToJointPtrVector(Joint *rootJoint);
+
+    Joint* parentJointPtr;
+
+    ui id;
+    ~Joint();
+private:
     glm::mat4 baseTransform;
     glm::mat4 baseTransformInverse;
 
-    std::vector<Joint> ToJointVector();
-
-    ui id;
-    Joint* parentJointPtr;
-    static void RecurseChildren(Joint &joint, std::function<void(Joint *)> callback);
-    ~Joint();
-private:
     glm::vec3 VectorBetweenTranslationMatrices(const glm::mat4 &parentTransform, const glm::mat4 &childTransform);
-
-    static bool CompareJoints(const Joint &joint1, const Joint &joint2);
+    static void RecurseChildren(Joint *joint, std::vector<Joint *> *jointVector);
+    static bool CompareJoints(const Joint *joint1, const Joint *joint2);
 };
 
 class AnimatedColouredMesh : public Mesh
 {
 public:
     AnimatedColouredMesh(glm::vec3 *positions, glm::vec3 *colours, ui noVertices, ui *indices, ui noIndices, glm::ivec3 *jointIndices);
-    void SetJointTransformUniforms(Shader &shader, const std::vector<Joint> &joints);
 private:
     void InitMesh(const PerformentIndexedModel &model);
     enum 

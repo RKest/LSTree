@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <execution>
 #include <mutex>
+#include <cassert>
 
 #include "_config.h"
 
@@ -26,13 +27,16 @@
 #include "random.h"
 
 template <class M>
-void renderMesh(Shader &shader, M &mesh, Transform &transform, Camera &camera);
+using meshesPack = std::vector<std::array<std::unique_ptr<M>, 3>>;
+using jointsPack = std::vector<std::unique_ptr<std::vector<Joint *>>>;
+
+void bindShader(Shader &shader, const Transform &transform, const Camera &camera);
 template <class M>
-void renderMesh(Shader &shader, M &mesh, Transform &transform, Camera &camera, glm::vec3 &lightPos);
-template <class M>
-void renderMesh(std::vector<std::unique_ptr<M>> &meshes, Shader &shader, Transform &transform, Camera &camera, glm::vec3 &lightPos);
-template <class M>
-void renderMesh(std::vector<std::unique_ptr<M>> &meshes);
+void drawMeshes(Shader &shader, meshesPack<M> &meshes);
+
+void setLightParams(Shader &shader, const glm::vec3 &lightPos, const glm::vec3 &viewPos);
+void alterWindCounter(CustomRand &customRand, ft &windCounter);
+void setJointParams(Shader &shader, const jointsPack &joints, ft windCounter);
 
 int main(int argc, char **args)
 {
@@ -41,13 +45,14 @@ int main(int argc, char **args)
     CustomRand customRand(69420);
     Display display(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello World");
 
-    std::vector<std::unique_ptr<AnimatedColouredMesh>> treeMeshes;
+    meshesPack<AnimatedColouredMesh> treeMeshes;
+    jointsPack joints;
     std::vector<std::unique_ptr<Tree>> trees;
 
     const std::string floorParams[] = {"position", "normal"};
     const std::string lightParams[] = {"position", "normal"};
     const std::string treeParams[] = {"position", "normal", "colour"};
-    const std::string animatedTreeParams[] = {"position", "normal", "colour", "jointIndex"};
+    const std::string animatedTreeParams[] = {"position", "normal", "colour", "jointIndices"};
     const std::string shadowMapParams[] = {"position"};
     const std::string uniforms[] = {"transform", "projection"};
 
@@ -57,25 +62,27 @@ int main(int argc, char **args)
     Shader animatedTreeShader("./Shaders/Tree2", animatedTreeParams, ARR_SIZE(animatedTreeParams), uniforms, ARR_SIZE(uniforms));
     Shader shadowMapShader("./Shaders/ShadowMap", shadowMapParams, ARR_SIZE(shadowMapParams), uniforms, ARR_SIZE(uniforms), true);
 
-    const std::vector<MatSeedPair> matSeedPairs = 
+    const std::vector<MatSeedPair> matSeedPairs =
         Distribution(customRand, -TREE_AREA_RADIOUS, TREE_AREA_RADIOUS, -TREE_AREA_RADIOUS, TREE_AREA_RADIOUS, TREE_MIN_PROXIMA, TREE_NO).ToMatSeedPair();
 
     std::for_each(
-        std::execution::seq,
+        std::execution::par_unseq,
         matSeedPairs.begin(),
         matSeedPairs.end(),
         [&trees, noIterations](auto &&pair)
         {
-            Joint rootJoint(pair.mat, 0, nullptr);
+            Joint *rootJointPtr = new Joint(pair.mat, 0, nullptr);
             CustomRand rand(pair.seed);
-            trees.push_back(std::make_unique<Tree>(pair.mat, WALL_NO, TreeLS(pair.seed, noIterations).Result(), rand, rootJoint));
+            trees.push_back(std::make_unique<Tree>(pair.mat, WALL_NO, TreeLS(pair.seed, noIterations).Result(), rand, rootJointPtr));
         });
 
     for (auto &t : trees)
     {
-        treeMeshes.push_back(std::move(t->BarkMesh()));
-        treeMeshes.push_back(std::move(t->StemMesh()));
-        treeMeshes.push_back(std::move(t->BladeMesh()));
+        treeMeshes.push_back({std::move(t->BarkMesh()),
+                              std::move(t->BladeMesh()),
+                              std::move(t->StemMesh())});
+
+        joints.push_back(std::move(t->JointPtrVectorPtr()));
     }
 
     ShadowMap shadowMap;
@@ -105,66 +112,74 @@ int main(int argc, char **args)
     Camera camera(glm::vec3(0, 0, 5), 70.0f, display.Aspect(), 0.01f, 1000.0f);
     Controler controler(display, camera);
 
-    float counter = 0.0f;
-
-    float r = 17.0 / 255.0;
-    float g = 51.0 / 255.0;
-    float b = 72.0 / 255.0;
-
-    Uint64 startPerf, endPerf;
+    ft counter = 0.0f;
+    ft windCounter = 0.0f;
 
     while (!display.IsClosed())
     {
-        startPerf = SDL_GetPerformanceCounter();
-        
-        display.Clear(r, g, b, 1.0f);
+        display.Clear(0.066f, 0.2f, 0.282f, 1.0f);
 
+        //Input
         controler.CaptureKeyboardPresses();
         controler.CaptureMouseMovement();
 
+        //Setting the position of the light source (cube)
         lightTransform.Pos().y = sinf(counter) * 2 + 6.0;
         lightTransform.Pos().x = sinf(counter) * 6.0;
         lightTransform.Pos().z = cosf(counter) * 6.0;
         lightTransform.Rot().y = counter;
 
+        //Loading the shadow map
         shadowMap.Apply(shadowMapShader, blankTransform, lightTransform.Pos());
-        renderMesh(treeMeshes);
+        setJointParams(shadowMapShader, joints, windCounter);
+        drawMeshes(shadowMapShader, treeMeshes);
         shadowMap.CleanUp(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-        renderMesh(floorShader, floor, blankTransform, camera, lightTransform.Pos());
-        renderMesh(lightShader, cube, lightTransform, camera);
-        renderMesh(treeMeshes, treeShader, blankTransform, camera, lightTransform.Pos());
+        //Drawing the floor
+        bindShader(floorShader, blankTransform, camera);
+        setLightParams(floorShader, lightTransform.Pos(), camera.Pos());
+        floor.Draw();
+
+        //Drawing the light source (cube)
+        bindShader(lightShader, lightTransform, camera);
+        cube.Draw();
+
+        //Drawing the trees
+        bindShader(animatedTreeShader, blankTransform, camera);
+        setLightParams(animatedTreeShader, lightTransform.Pos(), camera.Pos());
+        setJointParams(animatedTreeShader, joints, windCounter);
+        drawMeshes(animatedTreeShader, treeMeshes);
 
         display.Update();
-
-        endPerf = SDL_GetPerformanceCounter();
-
-        ft elapsedMS = (endPerf - startPerf) / (ft)SDL_GetPerformanceFrequency() * 1000.0f;
-        // std::cout << elapsedMS << std::endl;
-        // SDL_Delay(16.666f - elapsedMS);
+        alterWindCounter(customRand, windCounter);
         counter += 0.01f;
     }
 
     return 0;
 }
 
-template <class M>
-void renderMesh(Shader &shader, M &mesh, Transform &transform, Camera &camera)
+void bindShader(Shader &shader, const Transform &transform, const Camera &camera)
 {
     shader.Bind();
     shader.Update(transform, camera);
-
-    mesh.Draw();
+    shader.SetFloat("far_plane", SHADOW_FAR_PLANE);
 }
 
 template <class M>
-void renderMesh(Shader &shader, M &mesh, Transform &transform, Camera &camera, glm::vec3 &lightPos)
+void drawMeshes(Shader &shader, meshesPack<M> &meshes)
 {
-    shader.Bind();
-    shader.Update(transform, camera);
+    for (ui i = 0; i < meshes.size(); ++i)
+    {
+        shader.SetInt("currTreeIndex", i);
+        for (auto &mesh : meshes[i])
+            mesh->Draw();
+    }
+}
 
+void setLightParams(Shader &shader, const glm::vec3 &lightPos, const glm::vec3 &viewPos)
+{
     shader.SetVec3("light.position", lightPos);
-    shader.SetVec3("viewPos", camera.Pos());
+    shader.SetVec3("viewPos", viewPos);
 
     shader.SetVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
     shader.SetVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
@@ -173,38 +188,30 @@ void renderMesh(Shader &shader, M &mesh, Transform &transform, Camera &camera, g
     shader.SetFloat("light.constant", 1.0f);
     shader.SetFloat("light.linear", 0.9f);
     shader.SetFloat("light.quadratic", 0.032f);
-
-    shader.SetFloat("far_plane", SHADOW_FAR_PLANE);
-
-    mesh.Draw();
 }
 
-template <class M>
-void renderMesh(std::vector<std::unique_ptr<M>> &meshes, Shader &shader, Transform &transform, Camera &camera, glm::vec3 &lightPos)
+void alterWindCounter(CustomRand &customRand, ft &windCounter)
 {
-    shader.Bind();
-    shader.Update(transform, camera);
+    if (customRand.NextFloat(0.0f, 1.0f) < WIND_GUST_ODDS)
+        windCounter += WIND_GUST_STRENGTH;
+    else
+        windCounter *= WIND_DECAY_RATE;
 
-    shader.SetVec3("light.position", lightPos);
-    shader.SetVec3("viewPos", camera.Pos());
-
-    shader.SetVec3("light.ambient", glm::vec3(0.2f, 0.2f, 0.2f));
-    shader.SetVec3("light.diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
-    shader.SetVec3("light.specular", glm::vec3(0.5f, 0.5f, 0.5f));
-
-    shader.SetFloat("light.constant", 1.0f);
-    shader.SetFloat("light.linear", 0.9f);
-    shader.SetFloat("light.quadratic", 0.032f);
-
-    shader.SetFloat("far_plane", SHADOW_FAR_PLANE);
-
-    for (auto &m : meshes)
-        m->Draw();
+    if (windCounter > 1.0f)
+        windCounter = 1.0f;
 }
 
-template <class M>
-void renderMesh(std::vector<std::unique_ptr<M>> &meshes)
+void setJointParams(Shader &shader, const jointsPack &joints, ft windCounter)
 {
-    for (auto &m : meshes)
-        m->Draw();
+    assert(joints[0]->size() <= MAX_JOINT_AMOUNT);
+
+    shader.SetFloat("windStrenght", windCounter);
+    shader.SetVec3("windDirection", WIND_DIRECTION_VECTOR);
+
+    for (ui i = 0; i < joints.size(); ++i)
+        for (ui j = 0; j < joints[0]->size(); ++j)
+        {
+            shader.SetMat4("jointTransforms[" + std::to_string(i) + "][" + std::to_string(j) + "]", (*joints[i])[j]->jointTransform);
+            shader.SetVec3("jointVectors[" + std::to_string(i) + "][" + std::to_string(j) + "]", (*joints[i])[j]->toParentVector);
+        }
 }

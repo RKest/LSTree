@@ -9,26 +9,34 @@
 std::unique_ptr<AnimatedColouredMesh> Tree::BarkMesh()
 {
     return std::make_unique<AnimatedColouredMesh>(
-        &positions[0], &colours[0], positions.size(), 
+        &positions[0], &colours[0], positions.size(),
         &indicies[0], indicies.size(), &jointIndices[0]);
 }
 
 std::unique_ptr<AnimatedColouredMesh> Tree::StemMesh()
 {
     return std::make_unique<AnimatedColouredMesh>(
-        &stemPositions[0], &stemColours[0], stemPositions.size(), 
+        &stemPositions[0], &stemColours[0], stemPositions.size(),
         &stemIndices[0], stemIndices.size(), &stemJointIndices[0]);
 }
 
 std::unique_ptr<AnimatedColouredMesh> Tree::BladeMesh()
 {
     return std::make_unique<AnimatedColouredMesh>(
-        &bladePositions[0], &bladeColours[0], bladePositions.size(), 
+        &bladePositions[0], &bladeColours[0], bladePositions.size(),
         &bladeIndices[0], bladeIndices.size(), &bladeJointIndices[0]);
 }
 
-Tree::Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString, CustomRand &_customRand, Joint &_rootJoint)
-: baseTransform(_baseTransform), baseTransformInverse(glm::inverse(_baseTransform)), noWalls(_noWalls), customRand(_customRand), rootJoint(_rootJoint)
+std::unique_ptr<std::vector<Joint *>> Tree::JointPtrVectorPtr()
+{
+    std::unique_ptr<std::vector<Joint *>> returnPtr;
+    std::vector<Joint *> *jointPtrVector = Joint::ToJointPtrVector(rootJointPtr);
+    returnPtr.reset(jointPtrVector);
+    return returnPtr;
+}
+
+Tree::Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString, CustomRand &_customRand, Joint *_rootJointPtr)
+    : baseTransform(_baseTransform), baseTransformInverse(glm::inverse(_baseTransform)), noWalls(_noWalls), customRand(_customRand), rootJointPtr(_rootJointPtr)
 {
     ui stringLength = lsString.length();
 
@@ -38,7 +46,7 @@ Tree::Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsSt
     initialState.colour = BROWN;
     initialState.gurthExponent = 0;
     initialState.transform = _baseTransform;
-    initialState.youngestJoint = &rootJoint;
+    initialState.youngestJoint = rootJointPtr;
     initialState.jointCapacity = MAX_JOINT_DEPTH;
 
     VerticifyMesh(initialState);
@@ -53,7 +61,7 @@ Tree::Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsSt
         {
             ui noSegments = SegmentLength(lsString, i);
             glm::mat4 localTransform = TranslationMatrix(noSegments);
-            
+
             i += noSegments - 1;
             HandleF(noSegments, localTransform);
             break;
@@ -178,7 +186,6 @@ void Tree::VerticifyMesh(const LSystemState &topState)
     ui firstAngle = 360 / noWalls;
 
     glm::ivec3 jointIndicesVec = topState.youngestJoint->AffectedIndices();
-    // glm::ivec3 jointIndicesVec = glm::ivec3(0);
     ft radius = GurthByExponent(topState.gurthExponent);
 
     if (cosSinMemTable[firstAngle].Repr())
