@@ -143,22 +143,21 @@ class Joint
 {
 public:
     Joint(const glm::mat4 &baseTransform, ui _id, Joint *_parentJointPtr);
-    void AlterJointTrasform(const glm::mat4 &alterationTransform);
     glm::ivec3 AffectedIndices();
 
     glm::vec3 toParentVector;
-    glm::mat4 jointTransform;
+
+    glm::mat4 baseTransform;
+    glm::mat4 baseTransformInverse;
 
     std::vector<Joint *> childJointPtrs;
     static std::vector<Joint *> *ToJointPtrVector(Joint *rootJoint);
 
     Joint* parentJointPtr;
 
-    ui id;
     ~Joint();
 private:
-    glm::mat4 baseTransform;
-    glm::mat4 baseTransformInverse;
+    ui id;
 
     glm::vec3 VectorBetweenTranslationMatrices(const glm::mat4 &parentTransform, const glm::mat4 &childTransform);
     static void RecurseChildren(Joint *joint, std::vector<Joint *> *jointVector);
@@ -174,9 +173,9 @@ private:
     enum 
     {
         POSITION_VB,
+        JOINT_INDEX_VB,
         NORMAL_VB,
         COLOUR_VB,
-        JOINT_INDEX_VB,
         INDEX_VB,
 
         NUM_BUFFERS

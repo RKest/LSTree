@@ -9,7 +9,7 @@
 
 //DISTIRBUTION
 #ifndef TREE_NO
-#define TREE_NO 10 //The same should be defined in the Tree2 Shader
+#define TREE_NO 5 //The same should be defined in the Tree2 Shader and ShadowMap Shader
 #endif
 
 #ifndef TREE_AREA_RADIOUS
@@ -55,14 +55,16 @@
 
 //MESH:Joints
 #define MAX_JOINT_DEPTH 3
-#define MAX_JOINT_AMOUNT 13 //The same should be difined in the Tree2 Shader
+#define MAX_JOINT_AMOUNT 13 //The same should be defined in the Tree2 Shader and ShadowMap Shader
 
 //WIND
-#define WIND_GUST_ODDS 0.03f
-#define WIND_GUST_STRENGTH 0.5f
-#define WIND_DECAY_RATE 0.8f
-#define WIND_DIRECTION_VECTOR glm::vec3(0.5f, 0.0f, 0.5f)
+#define WIND_GUST_ODDS 0.01f
+#define WIND_GUST_DECAY_RATE 0.7f
+#define WIND_GUST_STRENGTH 0.01f
+#define WIND_DECAY_RATE 0.995f
+#define WIND_DIRECTION_VECTOR glm::vec3(0.0f, 0.0f, 1.0f)
 #define WIND_AFFECTION_ANGLE 40.0f
+#define WIND_MAX_WIND_COUNTER 1.0f
 
 typedef unsigned long long u64; 
 typedef unsigned int ui;

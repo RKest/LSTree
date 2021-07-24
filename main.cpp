@@ -35,11 +35,19 @@ template <class M>
 void drawMeshes(Shader &shader, meshesPack<M> &meshes);
 
 void setLightParams(Shader &shader, const glm::vec3 &lightPos, const glm::vec3 &viewPos);
-void alterWindCounter(CustomRand &customRand, ft &windCounter);
-void setJointParams(Shader &shader, const jointsPack &joints, ft windCounter);
+void alterWindCounter(CustomRand &customRand, ft &windCounter, ui &framesSinceLastGust);
+void setJointParams(Shader &shader, const jointsPack &joints, ft windCounter, CustomRand &r);
 
 int main(int argc, char **args)
 {
+    glm::mat4 r = glm::rotate(glm::radians(90.0f), glm::vec3(0,1,0));
+    glm::mat4 t = glm::translate(glm::vec3(3,4,7));
+
+    printf("%s\n", glm::to_string(r).c_str());
+    printf("%s\n", glm::to_string(t).c_str());
+    printf("%s\n", glm::to_string(r * t).c_str());
+    printf("%s\n", glm::to_string(t * r).c_str());
+
     ui noIterations = argc > 1 ? std::atoi(args[1]) : 1;
 
     CustomRand customRand(69420);
@@ -52,8 +60,8 @@ int main(int argc, char **args)
     const std::string floorParams[] = {"position", "normal"};
     const std::string lightParams[] = {"position", "normal"};
     const std::string treeParams[] = {"position", "normal", "colour"};
-    const std::string animatedTreeParams[] = {"position", "normal", "colour", "jointIndices"};
-    const std::string shadowMapParams[] = {"position"};
+    const std::string animatedTreeParams[] = {"position", "jointIndices", "normal", "colour"};
+    const std::string shadowMapParams[] = {"position", "jointIndices"};
     const std::string uniforms[] = {"transform", "projection"};
 
     Shader floorShader("./Shaders/Floor", floorParams, ARR_SIZE(floorParams), uniforms, ARR_SIZE(uniforms));
@@ -114,6 +122,7 @@ int main(int argc, char **args)
 
     ft counter = 0.0f;
     ft windCounter = 0.0f;
+    ui framesSinceLastGust = 0;
 
     while (!display.IsClosed())
     {
@@ -131,7 +140,7 @@ int main(int argc, char **args)
 
         //Loading the shadow map
         shadowMap.Apply(shadowMapShader, blankTransform, lightTransform.Pos());
-        setJointParams(shadowMapShader, joints, windCounter);
+        setJointParams(shadowMapShader, joints, windCounter, customRand);
         drawMeshes(shadowMapShader, treeMeshes);
         shadowMap.CleanUp(SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -147,11 +156,11 @@ int main(int argc, char **args)
         //Drawing the trees
         bindShader(animatedTreeShader, blankTransform, camera);
         setLightParams(animatedTreeShader, lightTransform.Pos(), camera.Pos());
-        setJointParams(animatedTreeShader, joints, windCounter);
+        setJointParams(animatedTreeShader, joints, windCounter, customRand);
         drawMeshes(animatedTreeShader, treeMeshes);
 
         display.Update();
-        alterWindCounter(customRand, windCounter);
+        alterWindCounter(customRand, windCounter, framesSinceLastGust);
         counter += 0.01f;
     }
 
@@ -190,28 +199,36 @@ void setLightParams(Shader &shader, const glm::vec3 &lightPos, const glm::vec3 &
     shader.SetFloat("light.quadratic", 0.032f);
 }
 
-void alterWindCounter(CustomRand &customRand, ft &windCounter)
+void alterWindCounter(CustomRand &customRand, ft &windCounter, ui &framesSinceLastGust)
 {
     if (customRand.NextFloat(0.0f, 1.0f) < WIND_GUST_ODDS)
-        windCounter += WIND_GUST_STRENGTH;
+    {
+        std::cout << "Phew :3" << std::endl;
+        framesSinceLastGust = 0;
+    }
     else
+    {
+        ++framesSinceLastGust;
+        windCounter += WIND_GUST_STRENGTH * pow(WIND_GUST_DECAY_RATE, abs(-((int)framesSinceLastGust) + 15) / 9) * (WIND_MAX_WIND_COUNTER - windCounter);
         windCounter *= WIND_DECAY_RATE;
+    }
 
     if (windCounter > 1.0f)
         windCounter = 1.0f;
 }
 
-void setJointParams(Shader &shader, const jointsPack &joints, ft windCounter)
+void setJointParams(Shader &shader, const jointsPack &joints, ft windCounter, CustomRand &r)
 {
     assert(joints[0]->size() <= MAX_JOINT_AMOUNT);
 
+    shader.SetFloat("windAffectionAngle", glm::radians(WIND_AFFECTION_ANGLE));
+    shader.SetVec3("windDirectionVector", WIND_DIRECTION_VECTOR);
     shader.SetFloat("windStrenght", windCounter);
-    shader.SetVec3("windDirection", WIND_DIRECTION_VECTOR);
 
     for (ui i = 0; i < joints.size(); ++i)
         for (ui j = 0; j < joints[0]->size(); ++j)
         {
-            shader.SetMat4("jointTransforms[" + std::to_string(i) + "][" + std::to_string(j) + "]", (*joints[i])[j]->jointTransform);
+            shader.SetMat4("jointBaseTransforms[" + std::to_string(i) + "][" + std::to_string(j) + "]", (*joints[i])[j]->baseTransform);
             shader.SetVec3("jointVectors[" + std::to_string(i) + "][" + std::to_string(j) + "]", (*joints[i])[j]->toParentVector);
         }
 }

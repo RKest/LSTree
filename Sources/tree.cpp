@@ -116,7 +116,8 @@ void Tree::HandleF(ui noSegments, const glm::mat4 &localTransform)
     if (topState->jointCapacity)
     {
         --topState->jointCapacity;
-        Joint *jointPtr = new Joint(topState->transform, ++newestJoint, topState->youngestJoint);
+        Joint *jointPtr = new Joint(topState->transform, newestJoint++, topState->youngestJoint);
+
         topState->youngestJoint->childJointPtrs.push_back(jointPtr);
         topState->youngestJoint = jointPtr;
     }

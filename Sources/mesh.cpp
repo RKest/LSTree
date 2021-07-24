@@ -21,8 +21,8 @@ void Mesh::InitPositions(const PerformentIndexedModel &model, GLuint *vertexArra
     glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(model.positions[0]) * model.noVertices, model.positions, GL_STATIC_DRAW);
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(bufferPosition);
+    glVertexAttribPointer(bufferPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 void Mesh::InitPositions(const IndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition)
@@ -30,8 +30,8 @@ void Mesh::InitPositions(const IndexedModel &model, GLuint *vertexArrayBuffers, 
     glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[bufferPosition]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(model.positions[0]) * model.positions.size(), &model.positions[0], GL_STATIC_DRAW);
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(bufferPosition);
+    glVertexAttribPointer(bufferPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 void Mesh::InitNormals(const PerformentIndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition)
@@ -39,8 +39,8 @@ void Mesh::InitNormals(const PerformentIndexedModel &model, GLuint *vertexArrayB
     glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[bufferPosition]);
     glBufferData(GL_ARRAY_BUFFER, model.normalsPtr->size() * sizeof(glm::vec3), &(*model.normalsPtr)[0], GL_STATIC_DRAW);
 
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(bufferPosition);
+    glVertexAttribPointer(bufferPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 void Mesh::InitNormals(const IndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition)
@@ -48,8 +48,8 @@ void Mesh::InitNormals(const IndexedModel &model, GLuint *vertexArrayBuffers, ui
     glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[bufferPosition]);
     glBufferData(GL_ARRAY_BUFFER, model.normals.size() * sizeof(model.normals[0]), &model.normals[0], GL_STATIC_DRAW);
 
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(bufferPosition);
+    glVertexAttribPointer(bufferPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 void Mesh::InitColours(const PerformentIndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition)
@@ -57,8 +57,8 @@ void Mesh::InitColours(const PerformentIndexedModel &model, GLuint *vertexArrayB
     glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[bufferPosition]);
     glBufferData(GL_ARRAY_BUFFER, model.noVertices * sizeof(model.colours[0]), model.colours, GL_STATIC_DRAW);
 
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(bufferPosition);
+    glVertexAttribPointer(bufferPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 void Mesh::InitColours(const IndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition)
@@ -66,8 +66,8 @@ void Mesh::InitColours(const IndexedModel &model, GLuint *vertexArrayBuffers, ui
     glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[bufferPosition]);
     glBufferData(GL_ARRAY_BUFFER, model.colours.size() * sizeof(model.colours[0]), &model.colours[0], GL_STATIC_DRAW);
 
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(bufferPosition);
+    glVertexAttribPointer(bufferPosition, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 void Mesh::InitIndices(const PerformentIndexedModel &model, GLuint *vertexArrayBuffers, ui bufferPosition)
@@ -259,23 +259,13 @@ void PerformentIndexedModel::CalcNormals()
 Joint::Joint(const glm::mat4 &_baseTransform, ui _id, Joint *_parentJointPtr)
     : id(_id), parentJointPtr(_parentJointPtr), baseTransform(_baseTransform), baseTransformInverse(glm::inverse(_baseTransform))
 {
-    jointTransform = {
-        {1, 0, 0, 0},
-        {0, 1, 0, 0},
-        {0, 0, 1, 0},
-        {0, 0, 0, 1}};
-
     if (_parentJointPtr != nullptr)
     {
-        glm::mat4 toParentTransform = parentJointPtr->jointTransform * glm::inverse(jointTransform);
-        toParentVector = glm::normalize(glm::vec3(
-            toParentTransform[0][3],
-            toParentTransform[1][3],
-            toParentTransform[2][3]));
-
-        jointTransform = glm::rotate(
-            WIND_AFFECTION_ANGLE,
-            glm::cross(toParentVector, WIND_DIRECTION_VECTOR));
+        glm::mat4 toParentTransform = parentJointPtr->baseTransform * baseTransformInverse;
+        toParentVector = glm::vec3(
+            toParentTransform[3][0],
+            toParentTransform[3][1],
+            toParentTransform[3][2]);
     }
 };
 
@@ -293,13 +283,6 @@ glm::ivec3 Joint::AffectedIndices()
     }
 
     return returnVector;
-}
-
-void Joint::AlterJointTrasform(const glm::mat4 &alterationTransform)
-{
-    jointTransform *= baseTransform;
-    jointTransform *= alterationTransform;
-    jointTransform *= baseTransformInverse;
 }
 
 std::vector<Joint *> *Joint::ToJointPtrVector(Joint *rootJoint)
@@ -340,14 +323,16 @@ void AnimatedColouredMesh::InitMesh(const PerformentIndexedModel &model)
     glGenBuffers(NUM_BUFFERS, vertexArrayBuffers);
 
     InitPositions(model, vertexArrayBuffers, POSITION_VB);
-    InitNormals(model, vertexArrayBuffers, NORMAL_VB);
-    InitColours(model, vertexArrayBuffers, COLOUR_VB);
 
     glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[JOINT_INDEX_VB]);
     glBufferData(GL_ARRAY_BUFFER, model.noVertices * sizeof(model.jointIndices[0]), model.jointIndices, GL_STATIC_DRAW);
 
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_UNSIGNED_INT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(JOINT_INDEX_VB);
+    //This _______|_______ character right here was a difference between me having a weekend and not. Read documentation kids :)
+    glVertexAttribIPointer(JOINT_INDEX_VB, 3, GL_UNSIGNED_INT, 0, 0);
+
+    InitNormals(model, vertexArrayBuffers, NORMAL_VB);
+    InitColours(model, vertexArrayBuffers, COLOUR_VB);
 
     InitIndices(model, vertexArrayBuffers, INDEX_VB);
 
@@ -356,6 +341,6 @@ void AnimatedColouredMesh::InitMesh(const PerformentIndexedModel &model)
 
 Joint::~Joint()
 {
-    for (auto &j : childJointPtrs)
+    for (auto j : childJointPtrs)
         delete j;
 }
