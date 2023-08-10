@@ -1,7 +1,33 @@
 #include "mesh.h"
-#include "glm/gtx/string_cast.hpp"
-#include <iostream>
 #include <vector>
+
+namespace
+{
+    auto calcNormals(std::span<glm::vec3> vertices, std::span<unsigned int> indices)
+        -> std::vector<glm::vec3>
+    {
+        std::vector<glm::vec3> normals{vertices.size()};
+        for (std::size_t i = 0; i < indices.size(); i += 3)
+        {
+            std::size_t i0 = indices[i];
+            std::size_t i1 = indices[i + 1];
+            std::size_t i2 = indices[i + 2];
+
+            glm::vec3 v1 = vertices[i1] - vertices[i0];
+            glm::vec3 v2 = vertices[i2] - vertices[i0];
+
+            glm::vec3 normal = glm::normalize(glm::cross(v1, v2));
+
+            normals[i0] += normal;
+            normals[i1] += normal;
+            normals[i2] += normal;
+        }
+
+        for (std::size_t i = 0; i < vertices.size(); i++)
+            normals[i] = glm::normalize(normals[i]);
+        return normals;
+    }
+} // namespace
 
 void Mesh::Draw()
 {
@@ -10,52 +36,28 @@ void Mesh::Draw()
     glBindVertexArray(0);
 }
 
-void Mesh::initIndices(std::span<unsigned> indices, GLuint bufferPosition)
+void Mesh::initVertexArrayWith(std::size_t number_of_buffers)
 {
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexArrayBuffers[bufferPosition]);
+    glGenVertexArrays(1, &vertexArrayObject);
+    glBindVertexArray(vertexArrayObject);
+    glGenBuffers(number_of_buffers, vertexArrayBuffers.data());
+}
+
+void Mesh::initIndices(std::span<unsigned> indices)
+{
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vertexArrayBuffers[next_buffer_pos++]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned) * indices.size(), indices.data(),
                  GL_STATIC_DRAW);
 }
 
 void Mesh::initNormals(std::span<glm::vec3> normals, std::span<glm::vec3> positions,
-                       std::span<unsigned int> indices, GLuint& buffer_pos)
+                       std::span<unsigned int> indices)
 {
     if (normals.empty())
     {
-        auto calced_normals = calcNormals(positions, indices);
-        initVertexData(std::span{calced_normals}, buffer_pos);
+        auto calculated_normals = calcNormals(positions, indices);
+        initVertexData(std::span{calculated_normals});
         return;
     }
-    initVertexData(normals, buffer_pos);
-}
-
-// void AnimatedColouredMesh::InitMesh(const PerformentIndexedModel &model)
-//{
-//     SetDrawCount(model.noIndices);
-//
-//     glGenBuffers(NUM_BUFFERS, vertexArrayBuffers);
-//
-//     InitPositions(model, vertexArrayBuffers, POSITION_VB);
-//
-//     glBindBuffer(GL_ARRAY_BUFFER, vertexArrayBuffers[JOINT_INDEX_VB]);
-//     glBufferData(GL_ARRAY_BUFFER, model.noVertices * sizeof(model.jointIndices[0]),
-//     model.jointIndices, GL_STATIC_DRAW);
-//
-//     glEnableVertexAttribArray(JOINT_INDEX_VB);
-//     //This _______|_______ character right here was a difference between me having a weekend and
-//     not. Read documentation kids :) glVertexAttribIPointer(JOINT_INDEX_VB, 3, GL_UNSIGNED_INT, 0,
-//     0);
-//
-//     InitNormals(model, vertexArrayBuffers, NORMAL_VB);
-//     InitColours(model, vertexArrayBuffers, COLOUR_VB);
-//
-//     InitIndices(model, vertexArrayBuffers, INDEX_VB);
-//
-//     glBindVertexArray(0);
-// }
-
-Joint::~Joint()
-{
-    for (auto j : childJointPtrs)
-        delete j;
+    initVertexData(normals);
 }

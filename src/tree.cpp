@@ -8,26 +8,23 @@
 
 std::unique_ptr<Mesh> Tree::BarkMesh()
 {
-    return std::make_unique<Mesh>(MeshArgs<mesh_mods::None>{positions, indicies}
-                                      .withColors(colours)
-                                      .withJointIndices(jointIndices)
-                                      .getData());
+    return std::make_unique<Mesh>(
+        MeshArgs<mesh_mods::None>{positions, indicies}.withColors(colours).withJointIndices(
+            jointIndices));
 }
 
 std::unique_ptr<Mesh> Tree::StemMesh()
 {
     return std::make_unique<Mesh>(MeshArgs<mesh_mods::None>{stemPositions, stemIndices}
                                       .withColors(stemColours)
-                                      .withJointIndices(stemJointIndices)
-                                      .getData());
+                                      .withJointIndices(stemJointIndices));
 }
 
 std::unique_ptr<Mesh> Tree::BladeMesh()
 {
     return std::make_unique<Mesh>(MeshArgs<mesh_mods::None>{bladePositions, bladeIndices}
                                       .withColors(bladeColours)
-                                      .withJointIndices(bladeJointIndices)
-                                      .getData());
+                                      .withJointIndices(bladeJointIndices));
 }
 
 std::unique_ptr<std::vector<Joint*>> Tree::JointPtrVectorPtr()

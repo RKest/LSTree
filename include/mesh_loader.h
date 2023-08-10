@@ -19,16 +19,14 @@ struct MeshLoader
     {
         OBJModel model(path);
         auto indexed_model = model.ToIndexedModel();
-        if (Mods & mesh_mods::Normals && indexed_model.normals.empty())
+        if (indexed_model.normals.empty())
         {
             indexed_model.CalcNormals();
         }
         MeshArgs args{indexed_model.positions, indexed_model.indices};
         const auto& args2 =
-            STATIC_IF(Mods & mesh_mods::Normals, args.withNormals(indexed_model.normals), args);
-        const auto& args3 =
-            STATIC_IF(Mods & mesh_mods::Texture, args2.withTextures(indexed_model.texCoords), args2);
-        return Mesh{args3.getData()};
+            STATIC_IF(Mods & mesh_mods::Texture, args.withTextures(indexed_model.texCoords), args);
+        return Mesh{args2};
     }
 };
 
