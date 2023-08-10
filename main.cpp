@@ -9,7 +9,7 @@
 #include "_config.h"
 
 #include "camera.h"
-#include "controler.h"
+#include "controller.h"
 #include "display.h"
 #include "distribution.h"
 #include "l_systems.h"
@@ -99,20 +99,20 @@ int main(int argc, char** args)
 
     lightTransform.Scale() = glm::vec3(0.1, 0.1, 0.1);
 
-    Camera camera(glm::vec3(0, 0, 5), 70.0f, display.Aspect(), 0.01f, 1000.0f);
-    Controler controler(display, camera);
+    Camera camera(glm::vec3(0, 0, 5), 70.0f, display.aspectRatio(), 0.01f, 1000.0f);
+    Controller controller(camera);
 
     ft counter = 0.0f;
     ft windCounter = 0.0f;
     ui framesSinceLastGust = 0;
 
-    while (!display.IsClosed())
+    while (!display.isClosed())
     {
-        display.Clear(0.066f, 0.2f, 0.282f, 1.0f);
+        display.clear(0.066f, 0.2f, 0.282f, 1.0f);
 
         // Input
-        controler.CaptureKeyboardPresses();
-        controler.CaptureMouseMovement();
+        controller.invokeKeyboardEvents();
+        controller.invokeMouseEvents();
 
         // Setting the position of the light source (cube)
         lightTransform.Pos().y = sinf(counter) * 2 + 6.0;
@@ -141,7 +141,7 @@ int main(int argc, char** args)
         setJointParams(animatedTreeShader, joints, windCounter, customRand);
         drawMeshes(animatedTreeShader, treeMeshes);
 
-        display.Update();
+        display.update();
         alterWindCounter(customRand, windCounter, framesSinceLastGust);
         counter += 0.01f;
     }

@@ -1,6 +1,6 @@
 add_library(
         ls_tree
-        controler.cpp
+        controller.cpp
         display.cpp
         distribution.cpp
         l_systems.cpp
