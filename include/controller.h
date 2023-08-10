@@ -19,7 +19,8 @@ public:
         S,
         D,
         LCTRL,
-        SPACE
+        SPACE,
+        ESC
     };
 
     void invokeMouseEvents();
@@ -32,6 +33,8 @@ public:
     }
 
 private:
+    [[nodiscard]] static auto getScancode(Key key) -> SDL_Scancode;
+
     void moveForward();
     void moveBackwards();
     void moveRight();
@@ -47,8 +50,6 @@ private:
     float pitch{0.F};
 
     const Uint8* keys = SDL_GetKeyboardState(NULL);
-    SDL_Scancode key_scancode_map[6] = {SDL_SCANCODE_W, SDL_SCANCODE_A,     SDL_SCANCODE_S,
-                                        SDL_SCANCODE_D, SDL_SCANCODE_LCTRL, SDL_SCANCODE_SPACE};
     struct KeyMap
     {
         Key key;

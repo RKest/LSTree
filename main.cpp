@@ -101,6 +101,7 @@ int main(int argc, char** args)
 
     Camera camera(glm::vec3(0, 0, 5), 70.0f, display.aspectRatio(), 0.01f, 1000.0f);
     Controller controller(camera);
+    controller.bindToFront(controller.ESC, &Display::close, &display);
 
     ft counter = 0.0f;
     ft windCounter = 0.0f;

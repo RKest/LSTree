@@ -78,8 +78,3 @@ void Display::close()
 {
     is_closed = true;
 }
-
-void Display::fetchMouseCoordsNormalised(int& x, int& y)
-{
-
-}

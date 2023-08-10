@@ -61,9 +61,25 @@ void Controller::invokeKeyboardEvents()
 {
     for (auto& [key, callback] : key_callbacks)
     {
-        if (keys[key_scancode_map[key]])
+        if (keys[getScancode(key)])
         {
             callback();
         }
     }
+}
+
+auto Controller::getScancode(Key key) -> SDL_Scancode
+{
+    // Do not define default case for compiler warnings
+    switch (key)
+    {
+    case W: return SDL_SCANCODE_W;
+    case S: return SDL_SCANCODE_S;
+    case A: return SDL_SCANCODE_A;
+    case D: return SDL_SCANCODE_D;
+    case LCTRL: return SDL_SCANCODE_LCTRL;
+    case SPACE: return SDL_SCANCODE_SPACE;
+    case ESC: return SDL_SCANCODE_ESCAPE;
+    }
+    return SDL_Scancode{};
 }
