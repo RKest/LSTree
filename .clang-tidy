@@ -1,0 +1,6 @@
+---
+Checks: '*,-fuchsia-*,-google-*,-zircon-*,-abseil-*,-llvm*,-altera-unroll-loops'
+WarningsAsErrors: '*'
+HeaderFilterRegex: ''
+FormatStyle: none
+

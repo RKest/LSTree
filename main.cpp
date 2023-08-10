@@ -1,8 +1,6 @@
-#include <GL/glew.h>
 #include "glm/gtx/string_cast.hpp"
 
 #include <iostream>
-#include <unistd.h>
 #include <vector>
 #include <string>
 #include <memory>
@@ -16,7 +14,6 @@
 #include "display.h"
 #include "shader.h"
 #include "mesh.h"
-#include "texture.h"
 #include "transform.h"
 #include "camera.h"
 #include "controler.h"
@@ -25,6 +22,7 @@
 #include "distribution.h"
 #include "shadow_map.h"
 #include "random.h"
+#include "mesh_loader.h"
 
 template <class M>
 using meshesPack = std::vector<std::array<std::unique_ptr<M>, 3>>;
@@ -53,7 +51,7 @@ int main(int argc, char **args)
     CustomRand customRand(69420);
     Display display(SCREEN_WIDTH, SCREEN_HEIGHT, "Hello World");
 
-    meshesPack<AnimatedColouredMesh> treeMeshes;
+    meshesPack<Mesh> treeMeshes;
     jointsPack joints;
     std::vector<std::unique_ptr<Tree>> trees;
 
@@ -64,11 +62,11 @@ int main(int argc, char **args)
     const std::string shadowMapParams[] = {"position", "jointIndices"};
     const std::string uniforms[] = {"transform", "projection"};
 
-    Shader floorShader("./Shaders/Floor", floorParams, ARR_SIZE(floorParams), uniforms, ARR_SIZE(uniforms));
-    Shader lightShader("./Shaders/Light", lightParams, ARR_SIZE(lightParams), uniforms, ARR_SIZE(uniforms));
-    Shader treeShader("./Shaders/Tree", treeParams, ARR_SIZE(treeParams), uniforms, ARR_SIZE(uniforms));
-    Shader animatedTreeShader("./Shaders/Tree2", animatedTreeParams, ARR_SIZE(animatedTreeParams), uniforms, ARR_SIZE(uniforms));
-    Shader shadowMapShader("./Shaders/ShadowMap", shadowMapParams, ARR_SIZE(shadowMapParams), uniforms, ARR_SIZE(uniforms), true);
+    Shader floorShader("./shaders/Floor", floorParams, ARR_SIZE(floorParams), uniforms, ARR_SIZE(uniforms));
+    Shader lightShader("./shaders/Light", lightParams, ARR_SIZE(lightParams), uniforms, ARR_SIZE(uniforms));
+    Shader treeShader("./shaders/Tree", treeParams, ARR_SIZE(treeParams), uniforms, ARR_SIZE(uniforms));
+    Shader animatedTreeShader("./shaders/Tree2", animatedTreeParams, ARR_SIZE(animatedTreeParams), uniforms, ARR_SIZE(uniforms));
+    Shader shadowMapShader("./shaders/ShadowMap", shadowMapParams, ARR_SIZE(shadowMapParams), uniforms, ARR_SIZE(uniforms), true);
 
     const std::vector<MatSeedPair> matSeedPairs =
         Distribution(customRand, -TREE_AREA_RADIOUS, TREE_AREA_RADIOUS, -TREE_AREA_RADIOUS, TREE_AREA_RADIOUS, TREE_MIN_PROXIMA, TREE_NO).ToMatSeedPair();
@@ -101,16 +99,16 @@ int main(int argc, char **args)
     floorShader.Bind();
     floorShader.SetInt("depthMap", 0);
 
-    glm::vec3 floorVertices[] = {
+    std::vector<glm::vec3> floorVertices{
         glm::vec3(-100, -1, -100),
         glm::vec3(-100, -1, 100),
         glm::vec3(100, -1, 100),
         glm::vec3(100, -1, -100)};
 
-    ui floorIndicies[] = {0, 1, 2, 3, 0, 2};
+    std::vector<ui> floorIndicies{0, 1, 2, 3, 0, 2};
 
-    UntexturedMesh floor(floorVertices, ARR_SIZE(floorVertices), floorIndicies, ARR_SIZE(floorIndicies));
-    UntexturedMesh cube("./Resources/obj/cube.obj", false);
+    Mesh floor{MeshArgs{floorVertices, floorIndicies}.getData()};
+    Mesh cube = MeshLoader::load<mesh_mods::None>("./res/obj/cube.obj");
 
     Transform blankTransform;
     Transform lightTransform;

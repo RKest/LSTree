@@ -112,7 +112,7 @@ SDL_Scancode *Display::KeyScancodeMap()
 
 // void Display::RenderText(const std::string &text, SDL_Rect textBox)
 // {
-//     font = LoadFont("./Resources/Roboto-Black.ttf");
+//     font = LoadFont("./res/Roboto-Black.ttf");
 //     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 //     SDL_Color fg = {0, 0, 0};

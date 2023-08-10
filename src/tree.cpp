@@ -1,42 +1,47 @@
 #include "tree.h"
 #include "glm/gtx/string_cast.hpp"
+#include <algorithm>
 #include <iostream>
 #include <numeric>
-#include <algorithm>
 
 #define TRANSLATION_AMOUNT 1.0
 
-std::unique_ptr<AnimatedColouredMesh> Tree::BarkMesh()
+std::unique_ptr<Mesh> Tree::BarkMesh()
 {
-    return std::make_unique<AnimatedColouredMesh>(
-        &positions[0], &colours[0], positions.size(),
-        &indicies[0], indicies.size(), &jointIndices[0]);
+    return std::make_unique<Mesh>(MeshArgs<mesh_mods::None>{positions, indicies}
+                                      .withColors(colours)
+                                      .withJointIndices(jointIndices)
+                                      .getData());
 }
 
-std::unique_ptr<AnimatedColouredMesh> Tree::StemMesh()
+std::unique_ptr<Mesh> Tree::StemMesh()
 {
-    return std::make_unique<AnimatedColouredMesh>(
-        &stemPositions[0], &stemColours[0], stemPositions.size(),
-        &stemIndices[0], stemIndices.size(), &stemJointIndices[0]);
+    return std::make_unique<Mesh>(MeshArgs<mesh_mods::None>{stemPositions, stemIndices}
+                                      .withColors(stemColours)
+                                      .withJointIndices(stemJointIndices)
+                                      .getData());
 }
 
-std::unique_ptr<AnimatedColouredMesh> Tree::BladeMesh()
+std::unique_ptr<Mesh> Tree::BladeMesh()
 {
-    return std::make_unique<AnimatedColouredMesh>(
-        &bladePositions[0], &bladeColours[0], bladePositions.size(),
-        &bladeIndices[0], bladeIndices.size(), &bladeJointIndices[0]);
+    return std::make_unique<Mesh>(MeshArgs<mesh_mods::None>{bladePositions, bladeIndices}
+                                      .withColors(bladeColours)
+                                      .withJointIndices(bladeJointIndices)
+                                      .getData());
 }
 
-std::unique_ptr<std::vector<Joint *>> Tree::JointPtrVectorPtr()
+std::unique_ptr<std::vector<Joint*>> Tree::JointPtrVectorPtr()
 {
-    std::unique_ptr<std::vector<Joint *>> returnPtr;
-    std::vector<Joint *> *jointPtrVector = Joint::ToJointPtrVector(rootJointPtr);
-    returnPtr.reset(jointPtrVector);
-    return returnPtr;
+    return std::make_unique<std::vector<Joint*>>(Joint::ToJointPtrVector(rootJointPtr));
 }
 
-Tree::Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsString, CustomRand &_customRand, Joint *_rootJointPtr)
-    : baseTransform(_baseTransform), baseTransformInverse(glm::inverse(_baseTransform)), noWalls(_noWalls), customRand(_customRand), rootJointPtr(_rootJointPtr)
+Tree::Tree(const glm::mat4& _baseTransform, ui _noWalls, const std::string& lsString,
+           CustomRand& _customRand, Joint* _rootJointPtr) :
+    baseTransform(_baseTransform),
+    baseTransformInverse(glm::inverse(_baseTransform)),
+    noWalls(_noWalls),
+    customRand(_customRand),
+    rootJointPtr(_rootJointPtr)
 {
     ui stringLength = lsString.length();
 
@@ -57,7 +62,7 @@ Tree::Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsSt
     for (ui i = 0; i < stringLength; ++i)
         switch (lsString[i])
         {
-        case * "F":
+        case *"F":
         {
             ui noSegments = SegmentLength(lsString, i);
             glm::mat4 localTransform = TranslationMatrix(noSegments);
@@ -66,22 +71,22 @@ Tree::Tree(const glm::mat4 &_baseTransform, ui _noWalls, const std::string &lsSt
             HandleF(noSegments, localTransform);
             break;
         }
-        case * "+":
+        case *"+":
             HandlePlus();
             break;
-        case * "-":
+        case *"-":
             HandleMinus();
             break;
-        case * "[":
+        case *"[":
             HandleLeftBracket();
             break;
-        case * "]":
+        case *"]":
             HandleRightBracket();
             break;
-        case * "C":
+        case *"C":
             HandleC();
             break;
-        case * "G":
+        case *"G":
             HandleG();
             break;
         default:
@@ -94,10 +99,10 @@ Tree::~Tree()
     std::cout << "Tree Destructed" << std::endl;
 }
 
-void Tree::HandleF(ui noSegments, const glm::mat4 &localTransform)
+void Tree::HandleF(ui noSegments, const glm::mat4& localTransform)
 {
-    LSystemState *topState = &states.top();
-    ui *level = &topState->level;
+    LSystemState* topState = &states.top();
+    ui* level = &topState->level;
 
     if (*level != newestLevel)
         level = &newestLevel;
@@ -116,7 +121,7 @@ void Tree::HandleF(ui noSegments, const glm::mat4 &localTransform)
     if (topState->jointCapacity)
     {
         --topState->jointCapacity;
-        Joint *jointPtr = new Joint(topState->transform, newestJoint++, topState->youngestJoint);
+        Joint* jointPtr = new Joint(topState->transform, newestJoint++, topState->youngestJoint);
 
         topState->youngestJoint->childJointPtrs.push_back(jointPtr);
         topState->youngestJoint = jointPtr;
@@ -161,7 +166,8 @@ Each wall is made with 2 triangles indexed counter-clockwise
 */
 void Tree::IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall)
 {
-    ui level_walls, first_and_forth, second_and_sixth, last_el_overflow, level_interval, interval_walls;
+    ui level_walls, first_and_forth, second_and_sixth, last_el_overflow, level_interval,
+        interval_walls;
     level_interval = toLevel - fromLevel;
     for (ui i = fromWall; i < toWall; ++i)
     {
@@ -181,7 +187,7 @@ void Tree::IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall)
     }
 }
 
-void Tree::VerticifyMesh(const LSystemState &topState)
+void Tree::VerticifyMesh(const LSystemState& topState)
 {
     ft sinVal, cosVal;
     ui firstAngle = 360 / noWalls;
@@ -195,7 +201,8 @@ void Tree::VerticifyMesh(const LSystemState &topState)
         {
             sinVal = cosSinMemTable[i].sinVal;
             cosVal = cosSinMemTable[i].cosVal;
-            positions.push_back(topState.transform * glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
+            positions.push_back(topState.transform *
+                                glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
             colours.push_back(COLOURS[topState.colour]);
             jointIndices.push_back(jointIndicesVec);
         }
@@ -208,7 +215,8 @@ void Tree::VerticifyMesh(const LSystemState &topState)
             cosVal = cos(glm::radians((ft)i));
             cosSinMemTable[i].sinVal = sinVal;
             cosSinMemTable[i].cosVal = cosVal;
-            positions.push_back(topState.transform * glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
+            positions.push_back(topState.transform *
+                                glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
             colours.push_back(COLOURS[topState.colour]);
             jointIndices.push_back(jointIndicesVec);
         }
@@ -217,15 +225,15 @@ void Tree::VerticifyMesh(const LSystemState &topState)
 
 void Tree::LoadLeafModel()
 {
-    leafStemModel = OBJModel("./Resources/obj/Leaf/stem.obj").ToIndexedModel();
-    leafBladeModel = OBJModel("./Resources/obj/Leaf/blade.obj").ToIndexedModel();
+    leafStemModel = OBJModel("./res/obj/Leaf/stem.obj").ToIndexedModel();
+    leafBladeModel = OBJModel("./res/obj/Leaf/blade.obj").ToIndexedModel();
 }
 
-void Tree::LoadLeaf(const glm::mat4 &transform, ui leafIndex, const glm::ivec3 &_jointIndices)
+void Tree::LoadLeaf(const glm::mat4& transform, ui leafIndex, const glm::ivec3& _jointIndices)
 {
     for (ui i = 0; i < leafStemModel.positions.size(); ++i)
     {
-        glm::vec3 *pos = &leafStemModel.positions[i];
+        glm::vec3* pos = &leafStemModel.positions[i];
         stemPositions.push_back(transform * glm::vec4(pos->x, pos->y, pos->z, TRANSLATION_AMOUNT));
         stemColours.push_back(COLOURS[BROWN]);
         stemJointIndices.push_back(_jointIndices);
@@ -238,7 +246,7 @@ void Tree::LoadLeaf(const glm::mat4 &transform, ui leafIndex, const glm::ivec3 &
 
     for (ui i = 0; i < leafBladeModel.positions.size(); ++i)
     {
-        glm::vec3 *pos = &leafBladeModel.positions[i];
+        glm::vec3* pos = &leafBladeModel.positions[i];
         bladePositions.push_back(transform * glm::vec4(pos->x, pos->y, pos->z, TRANSLATION_AMOUNT));
         bladeColours.push_back(COLOURS[GREEN]);
         bladeJointIndices.push_back(_jointIndices);
@@ -246,7 +254,8 @@ void Tree::LoadLeaf(const glm::mat4 &transform, ui leafIndex, const glm::ivec3 &
 
     for (ui i = 0; i < leafBladeModel.indices.size(); ++i)
     {
-        bladeIndices.push_back(leafBladeModel.indices[i] + leafBladeModel.indices.size() * leafIndex);
+        bladeIndices.push_back(leafBladeModel.indices[i] +
+                               leafBladeModel.indices.size() * leafIndex);
     }
 }
 
@@ -258,10 +267,11 @@ glm::mat4 Tree::RotateByDegrees(ft deg)
 
 ft Tree::GurthByExponent(ui gurthExponent)
 {
-    return SEGMENT_GURTH_CONSTANT + SEGMENT_GURTH_INTERCEPT * pow(SEGMENT_GURTH_DECAY_RATE, gurthExponent);
+    return SEGMENT_GURTH_CONSTANT +
+           SEGMENT_GURTH_INTERCEPT * pow(SEGMENT_GURTH_DECAY_RATE, gurthExponent);
 }
 
-ui Tree::SegmentLength(const std::string &stateString, ui i)
+ui Tree::SegmentLength(const std::string& stateString, ui i)
 {
     ui segmentLength = 0;
     while (stateString[i] == *"F")

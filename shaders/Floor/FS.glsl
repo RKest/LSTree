@@ -24,18 +24,7 @@ uniform samplerCube depthMap;
 uniform float far_plane;
 
 float bias = 0.25;
-/*---------------------------------------SIMPLE SHADOWS ------------------------------------------------*/
-// float calcShadows(vec3 fragPos) {
-//     vec3 fragToLight = fragPos - light.position;
 
-//     float closestDepth = texture(depthMap, fragToLight).r;
-//     closestDepth *= far_plane;
-
-//     float currentDepth = length(fragToLight);
-
-//     float shadow = 1.0 - ((currentDepth - bias) > closestDepth ? 1.0 : 0.0);
-//     return shadow;
-// }
 vec3 gridSamplingDisk[20] = vec3[]
 (
    vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1), 
