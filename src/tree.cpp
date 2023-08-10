@@ -1,8 +1,10 @@
 #include "tree.h"
-#include "glm/gtx/string_cast.hpp"
+
 #include <algorithm>
 #include <iostream>
 #include <numeric>
+
+#include <range/v3/view/iota.hpp>
 
 #define TRANSLATION_AMOUNT 1.0
 
@@ -57,9 +59,10 @@ Tree::Tree(const glm::mat4& _baseTransform, ui _noWalls, const std::string& lsSt
     states.push(std::move(initialState));
 
     for (ui i = 0; i < stringLength; ++i)
+    {
         switch (lsString[i])
         {
-        case *"F":
+        case 'F':
         {
             ui noSegments = SegmentLength(lsString, i);
             glm::mat4 localTransform = TranslationMatrix(noSegments);
@@ -68,27 +71,15 @@ Tree::Tree(const glm::mat4& _baseTransform, ui _noWalls, const std::string& lsSt
             HandleF(noSegments, localTransform);
             break;
         }
-        case *"+":
-            HandlePlus();
-            break;
-        case *"-":
-            HandleMinus();
-            break;
-        case *"[":
-            HandleLeftBracket();
-            break;
-        case *"]":
-            HandleRightBracket();
-            break;
-        case *"C":
-            HandleC();
-            break;
-        case *"G":
-            HandleG();
-            break;
-        default:
-            break;
+        case '+': HandlePlus(); break;
+        case '-': HandleMinus(); break;
+        case '[': HandleLeftBracket(); break;
+        case ']': HandleRightBracket(); break;
+        case 'C': HandleC(); break;
+        case 'G': HandleG(); break;
+        default: break;
         }
+    }
 }
 
 Tree::~Tree()
@@ -106,7 +97,7 @@ void Tree::HandleF(ui noSegments, const glm::mat4& localTransform)
 
     topState->gurthExponent += noSegments >> 1;
     topState->transform *= localTransform;
-    ft radius = GurthByExponent(topState->gurthExponent);
+    // ft radius = GurthByExponent(topState->gurthExponent);
 
     VerticifyMesh(*topState);
     IndexMesh(topState->level, *level + 1, 0, noWalls);
@@ -120,7 +111,7 @@ void Tree::HandleF(ui noSegments, const glm::mat4& localTransform)
         --topState->jointCapacity;
         Joint* jointPtr = new Joint(topState->transform, newestJoint++, topState->youngestJoint);
 
-        topState->youngestJoint->childJointPtrs.push_back(jointPtr);
+        topState->youngestJoint->childJointPtrs.emplace_back(jointPtr);
         topState->youngestJoint = jointPtr;
     }
 }
@@ -166,7 +157,7 @@ void Tree::IndexMesh(ui fromLevel, ui toLevel, ui fromWall, ui toWall)
     ui level_walls, first_and_forth, second_and_sixth, last_el_overflow, level_interval,
         interval_walls;
     level_interval = toLevel - fromLevel;
-    for (ui i = fromWall; i < toWall; ++i)
+    for (auto i : ranges::view::iota(fromWall, toWall))
     {
         level_walls = fromLevel * noWalls;
         interval_walls = level_interval * noWalls + level_walls;
@@ -192,31 +183,14 @@ void Tree::VerticifyMesh(const LSystemState& topState)
     glm::ivec3 jointIndicesVec = topState.youngestJoint->AffectedIndices();
     ft radius = GurthByExponent(topState.gurthExponent);
 
-    if (cosSinMemTable[firstAngle].Repr())
+    for (ui i = 0; i <= 360 - firstAngle; i += firstAngle)
     {
-        for (ui i = 0; i <= 360 - firstAngle; i += firstAngle)
-        {
-            sinVal = cosSinMemTable[i].sinVal;
-            cosVal = cosSinMemTable[i].cosVal;
-            positions.push_back(topState.transform *
-                                glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
-            colours.push_back(COLOURS[topState.colour]);
-            jointIndices.push_back(jointIndicesVec);
-        }
-    }
-    else
-    {
-        for (ui i = 0; i <= 360 - firstAngle; i += firstAngle)
-        {
-            sinVal = sin(glm::radians((ft)i));
-            cosVal = cos(glm::radians((ft)i));
-            cosSinMemTable[i].sinVal = sinVal;
-            cosSinMemTable[i].cosVal = cosVal;
-            positions.push_back(topState.transform *
-                                glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
-            colours.push_back(COLOURS[topState.colour]);
-            jointIndices.push_back(jointIndicesVec);
-        }
+        sinVal = sin(glm::radians((ft)i));
+        cosVal = cos(glm::radians((ft)i));
+        positions.push_back(topState.transform *
+                            glm::vec4(cosVal * radius, 0, sinVal * radius, TRANSLATION_AMOUNT));
+        colours.push_back(COLOURS[topState.colour]);
+        jointIndices.push_back(jointIndicesVec);
     }
 }
 
@@ -228,31 +202,28 @@ void Tree::LoadLeafModel()
 
 void Tree::LoadLeaf(const glm::mat4& transform, ui leafIndex, const glm::ivec3& _jointIndices)
 {
-    for (ui i = 0; i < leafStemModel.positions.size(); ++i)
+    for (const auto& pos : leafStemModel.positions)
     {
-        glm::vec3* pos = &leafStemModel.positions[i];
-        stemPositions.push_back(transform * glm::vec4(pos->x, pos->y, pos->z, TRANSLATION_AMOUNT));
+        stemPositions.push_back(transform * glm::vec4(pos.x, pos.y, pos.z, TRANSLATION_AMOUNT));
         stemColours.push_back(COLOURS[BROWN]);
         stemJointIndices.push_back(_jointIndices);
     }
 
-    for (ui i = 0; i < leafStemModel.indices.size(); ++i)
+    for (const auto& index : leafStemModel.indices)
     {
-        stemIndices.push_back(leafStemModel.indices[i] + leafStemModel.indices.size() * leafIndex);
+        stemIndices.push_back(index + leafStemModel.indices.size() * leafIndex);
     }
 
-    for (ui i = 0; i < leafBladeModel.positions.size(); ++i)
+    for (const auto& pos : leafBladeModel.positions)
     {
-        glm::vec3* pos = &leafBladeModel.positions[i];
-        bladePositions.push_back(transform * glm::vec4(pos->x, pos->y, pos->z, TRANSLATION_AMOUNT));
+        bladePositions.push_back(transform * glm::vec4(pos.x, pos.y, pos.z, TRANSLATION_AMOUNT));
         bladeColours.push_back(COLOURS[GREEN]);
         bladeJointIndices.push_back(_jointIndices);
     }
 
-    for (ui i = 0; i < leafBladeModel.indices.size(); ++i)
+    for (const auto& index : leafBladeModel.indices)
     {
-        bladeIndices.push_back(leafBladeModel.indices[i] +
-                               leafBladeModel.indices.size() * leafIndex);
+        bladeIndices.push_back(index + leafBladeModel.indices.size() * leafIndex);
     }
 }
 
@@ -271,7 +242,7 @@ ft Tree::GurthByExponent(ui gurthExponent)
 ui Tree::SegmentLength(const std::string& stateString, ui i)
 {
     ui segmentLength = 0;
-    while (stateString[i] == *"F")
+    while (stateString[i] == 'F')
     {
         segmentLength++;
         i++;

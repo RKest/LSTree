@@ -54,3 +54,11 @@ bool Joint::CompareJoints(const Joint* joint1, const Joint* joint2)
 {
     return joint1->id < joint2->id;
 }
+
+Joint::~Joint()
+{
+    for (auto& joint : childJointPtrs)
+    {
+        delete joint;
+    }
+}

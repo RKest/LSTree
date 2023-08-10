@@ -1,10 +1,10 @@
 #ifndef L_SYSTEMS_H
 #define L_SYSTEMS_H
 
-#include <string>
 #include <cassert>
-#include <vector>
 #include <random>
+#include <string>
+#include <vector>
 
 #include "_config.h"
 #include "random.h"
@@ -19,7 +19,7 @@ struct Rule
 {
     std::string symbol;
     std::vector<Replacer> replacers;
-    static std::string ChooseReplaceString(Rule &rule, CustomRand &customRand);
+    static std::string ChooseReplaceString(Rule& rule, CustomRand& customRand);
 };
 
 class TreeLS
@@ -27,10 +27,7 @@ class TreeLS
 public:
     TreeLS(ui seed, ui _noIterations);
 
-    std::string &Result()
-    {
-        return result;
-    };
+    std::string& Result() { return result; };
 
 private:
     /*
@@ -59,14 +56,30 @@ private:
     void Iterate();
 
     Rule rules[2] = {
-        {"X",                      //Symbol to replace
-         {{0.5,                    //Odds for the symbol to become...
-           "FF-[[X]+X]+F[FX]+X"},  //...this string
-          {0.5,
-           "FF+[[X]-X]-F[FX]-X"}}},
-        {"F",
-         {{1.0,
-           "FF"}}}};
+        {
+            .symbol = "X",
+            .replacers =
+                {
+                    {
+                        .odds = 0.5,
+                        .contents = "FF-[[X]+X]+F[FX]+X",
+                    },
+                    {
+                        .odds = 0.5,
+                        .contents = "FF+[[X]-X]-F[FX]-X",
+                    },
+                },
+        },
+        {
+            .symbol = "F",
+            .replacers{
+                {
+                    .odds = 1.0,
+                    .contents = "FF",
+                },
+            },
+        },
+    };
 };
 
 #endif

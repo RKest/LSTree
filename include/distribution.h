@@ -26,13 +26,9 @@ public:
 	std::vector<glm::mat4> &ToTranslateMatricies();
 	std::vector<MatSeedPair> &ToMatSeedPair();
 
-	~Distribution();
-
-protected:
 private:
 	CustomRand customRand;
 	std::vector<glm::vec2> coords;
 	std::vector<glm::mat4> matricies;
 	std::vector<MatSeedPair> matSeedPairs;
-	ft Diff(ft x, ft y);
 };

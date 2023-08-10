@@ -11,16 +11,6 @@
 #include "mesh.h"
 #include "random.h"
 
-struct CosSinPair
-{
-    ft cosVal;
-    ft sinVal;
-    ft Repr()
-    {
-        return cosVal + sinVal;
-    }
-};
-
 struct LSystemState
 {
     glm::mat4 transform;
@@ -97,7 +87,6 @@ private:
     glm::mat4 RotateByDegrees(ft deg);
     glm::mat4 TranslationMatrix(ui noSegments);
 
-    CosSinPair cosSinMemTable[361] = {{0, 0}};
     enum Coluors
     {
         GREEN,
