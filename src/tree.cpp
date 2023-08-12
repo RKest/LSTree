@@ -4,6 +4,7 @@
 #include <iostream>
 #include <numeric>
 
+#include <range/v3/algorithm/count.hpp>
 #include <range/v3/view/iota.hpp>
 
 #define TRANSLATION_AMOUNT 1.0
@@ -29,9 +30,10 @@ std::unique_ptr<Mesh> Tree::BladeMesh()
                                       .withJointIndices(bladeJointIndices));
 }
 
-std::unique_ptr<std::vector<Joint*>> Tree::JointPtrVectorPtr()
+std::unique_ptr<std::vector<std::shared_ptr<Joint>>> Tree::JointPtrVectorPtr()
 {
-    return std::make_unique<std::vector<Joint*>>(Joint::ToJointPtrVector(rootJointPtr));
+    return std::make_unique<std::vector<std::shared_ptr<Joint>>>(
+        Joint::ToJointPtrVector(rootJointPtr));
 }
 
 Tree::Tree(const glm::mat4& _baseTransform, ui _noWalls, const std::string& lsString,
@@ -57,6 +59,16 @@ Tree::Tree(const glm::mat4& _baseTransform, ui _noWalls, const std::string& lsSt
     LoadLeafModel();
 
     states.push(std::move(initialState));
+
+    auto leaves_amount = ranges::count(lsString, 'C');
+    bladeIndices.reserve(leaves_amount * leafBladeModel.indices.size());
+    bladePositions.reserve(leaves_amount * leafBladeModel.positions.size());
+    bladeColours.reserve(leaves_amount * leafBladeModel.positions.size());
+    bladeJointIndices.reserve(leaves_amount * leafBladeModel.positions.size());
+    stemIndices.reserve(leaves_amount * leafStemModel.indices.size());
+    stemPositions.reserve(leaves_amount * leafStemModel.positions.size());
+    stemColours.reserve(leaves_amount * leafStemModel.positions.size());
+    stemJointIndices.reserve(leaves_amount * leafStemModel.positions.size());
 
     for (ui i = 0; i < stringLength; ++i)
     {
@@ -109,9 +121,10 @@ void Tree::HandleF(ui noSegments, const glm::mat4& localTransform)
     if (topState->jointCapacity)
     {
         --topState->jointCapacity;
-        Joint* jointPtr = new Joint(topState->transform, newestJoint++, topState->youngestJoint);
+        auto jointPtr =
+            std::make_shared<Joint>(topState->transform, newestJoint++, topState->youngestJoint);
 
-        topState->youngestJoint->childJointPtrs.emplace_back(jointPtr);
+        topState->youngestJoint->childJointPtrs.push_back(jointPtr);
         topState->youngestJoint = jointPtr;
     }
 }

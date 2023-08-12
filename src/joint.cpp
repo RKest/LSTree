@@ -1,6 +1,7 @@
 #include "joint.h"
 
-Joint::Joint(const glm::mat4& _baseTransform, unsigned _id, Joint* _parentJointPtr) :
+Joint::Joint(const glm::mat4& _baseTransform, unsigned _id,
+             std::shared_ptr<Joint> _parentJointPtr) :
     id(_id),
     parentJointPtr(_parentJointPtr),
     baseTransform(_baseTransform),
@@ -24,41 +25,34 @@ glm::ivec3 Joint::AffectedIndices()
     while (currentlyExaminedJoint->parentJointPtr != nullptr)
     {
         returnVector[currentVectorIndex++] = currentlyExaminedJoint->id;
-        currentlyExaminedJoint = currentlyExaminedJoint->parentJointPtr;
+        currentlyExaminedJoint = currentlyExaminedJoint->parentJointPtr.get();
     }
 
     return returnVector;
 }
 
-std::vector<Joint*> Joint::ToJointPtrVector(Joint* rootJoint)
+std::vector<std::shared_ptr<Joint>> Joint::ToJointPtrVector(std::shared_ptr<Joint> rootJoint)
 {
-    std::vector<Joint*> returnVector;
+    std::vector<std::shared_ptr<Joint>> returnVector;
     returnVector.push_back(rootJoint);
-    RecurseChildren(rootJoint, returnVector);
+    RecurseChildren(rootJoint.get(), returnVector);
     returnVector.shrink_to_fit();
     std::sort(returnVector.begin(), returnVector.end(), CompareJoints);
 
     return returnVector;
 }
 
-void Joint::RecurseChildren(Joint* joint, std::vector<Joint*>& jointVector)
+void Joint::RecurseChildren(Joint* joint, std::vector<std::shared_ptr<Joint>>& jointVector)
 {
     for (std::size_t i = 0; i < joint->childJointPtrs.size(); ++i)
     {
         jointVector.push_back(joint->childJointPtrs[i]);
-        RecurseChildren(joint->childJointPtrs[i], jointVector);
+        RecurseChildren(joint->childJointPtrs[i].get(), jointVector);
     }
 }
 
-bool Joint::CompareJoints(const Joint* joint1, const Joint* joint2)
+bool Joint::CompareJoints(const std::shared_ptr<Joint>& joint1,
+                          const std::shared_ptr<Joint>& joint2)
 {
     return joint1->id < joint2->id;
-}
-
-Joint::~Joint()
-{
-    for (auto& joint : childJointPtrs)
-    {
-        delete joint;
-    }
 }

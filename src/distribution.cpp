@@ -18,11 +18,9 @@ Distribution::Distribution(CustomRand& _customRand, ft minX, ft maxX, ft minY, f
         {
             return glm::length(glm::abs(position - from));
         };
-
         bool doesElementFit = std::all_of(coords.begin(), coords.end(),
                                           [length_to_pos, closestProxima](glm::vec2& v)
                                           { return length_to_pos(v) > closestProxima; });
-
         if (doesElementFit)
         {
             coords.push_back(position);

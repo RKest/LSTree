@@ -22,7 +22,7 @@
 #include "tree.h"
 
 template<class M> using meshesPack = std::vector<std::array<std::unique_ptr<M>, 3>>;
-using jointsPack = std::vector<std::unique_ptr<std::vector<Joint*>>>;
+using jointsPack = std::vector<std::unique_ptr<std::vector<std::shared_ptr<Joint>>>>;
 
 void bindShader(Shader& shader, const Transform& transform, const Camera& camera);
 template<class M> void drawMeshes(Shader& shader, meshesPack<M>& meshes);
